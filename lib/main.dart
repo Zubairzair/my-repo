@@ -16,7 +16,7 @@ Future<void> main() async {
 
   final isLogin = await SessionManager().isLogin();
 
-  var iRoute = "/login";
+  var iRoute = "/home"; // Changed to home by default for now
   if (isLogin != null) iRoute = "/home";
 
   runApp(MyApp(
@@ -59,7 +59,7 @@ class MyApp extends StatelessWidget {
       initialRoute: iRoute,
       routes: {
         // '/splash': (context) => SplashScreen(),
-      //  '/login': (context) => LoginScreen(),
+        '/login': (context) => LoginScreen(),
         '/profile': (context) => ProfileScreen(),
         '/home': (context) => HomeScreen(),
       },

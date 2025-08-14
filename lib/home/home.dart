@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:vyapar_app/home/portfolio/portfolio.dart';
-import 'package:vyapar_app/home/watchlist/watchlist.dart';
+import 'package:vyapar_app/home/invoices/invoices.dart';
+import 'package:vyapar_app/home/stock/stock_reports.dart';
+import 'package:vyapar_app/home/dashboard/dashboard.dart';
+import 'package:vyapar_app/home/profits/profits.dart';
 
 import 'account.dart';
-import 'bids.dart';
-import 'orders.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,49 +13,43 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
-  final ExpansionTileController controller = ExpansionTileController();
+class _HomeScreenState extends State<HomeScreen> {
   final PageController pageController = PageController(initialPage: 0);
-
   int _selectedIndex = 0;
-
-  // Create a tab controller
-  late TabController tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    // Initialize the Tab Controller
-    tabController = TabController(length: 3, vsync: this);
-  }
 
   @override
   void dispose() {
-    tabController.dispose();
+    pageController.dispose();
     super.dispose();
-  }
-
-  void _navigateToScreen() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const HomeScreen(),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Sales & Marketing',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () {},
+          ),
+        ],
+      ),
       body: SafeArea(
         child: PageView(
           physics: const NeverScrollableScrollPhysics(),
           controller: pageController,
           children: const [
-            WatchList(),
-            Orders(),
-            Portfolio(),
-            Bids(),
+            Dashboard(),
+            Invoices(),
+            StockReports(),
+            Profits(),
             Account()
           ],
         ),
@@ -75,24 +69,24 @@ class _HomeScreenState extends State<HomeScreen>
           selectedLabelStyle: const TextStyle(color: Colors.blueAccent),
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
-              icon: Icon(Icons.bookmark_outline_sharp),
-              label: 'Watchlist',
+              icon: Icon(Icons.dashboard_outlined),
+              label: 'Dashboard',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.my_library_books_sharp),
-              label: 'Orders',
+              icon: Icon(Icons.receipt_long_outlined),
+              label: 'Invoices',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.cases_outlined),
-              label: 'Portfolio',
+              icon: Icon(Icons.inventory_2_outlined),
+              label: 'Stock',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.colorize_outlined),
-              label: 'Bids',
+              icon: Icon(Icons.trending_up_outlined),
+              label: 'Profits',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline_rounded),
-              label: 'KP0237',
+              label: 'Account',
             ),
           ],
           currentIndex: _selectedIndex,

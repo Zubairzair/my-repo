@@ -59,7 +59,7 @@ class MyApp extends StatelessWidget {
       initialRoute: iRoute,
       routes: {
         // '/splash': (context) => SplashScreen(),
-        '/login': (context) => LoginScreen(),
+      //  '/login': (context) => LoginScreen(),
         '/profile': (context) => ProfileScreen(),
         '/home': (context) => HomeScreen(),
       },

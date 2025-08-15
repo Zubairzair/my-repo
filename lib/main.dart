@@ -8,6 +8,7 @@ import 'home/home.dart';
 import 'login/login.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -19,8 +20,10 @@ Future<void> main() async {
 
   final isLogin = await SessionManager().isLogin();
 
-  var iRoute = "/home"; // Changed to home by default for now
-  if (isLogin != null) iRoute = "/home";
+  var iRoute = "/login"; // Start with login by default
+  if (isLogin != null && isLogin == "true") {
+    iRoute = "/home";
+  }
 
   runApp(MyApp(
     iRoute: iRoute,
@@ -28,7 +31,7 @@ Future<void> main() async {
 }
 
 /// This widget is the root of your application.
-/// Using MultiBlocProvider for Dependency Injection.
+/// Using Firebase Authentication for secure login.
 class MyApp extends StatelessWidget {
   const MyApp({super.key, required this.iRoute});
 
@@ -61,10 +64,9 @@ class MyApp extends StatelessWidget {
               )),
       initialRoute: iRoute,
       routes: {
-        // '/splash': (context) => SplashScreen(),
-//        '/login': (context) => LoginScreen(),
-        '/profile': (context) => ProfileScreen(),
-        '/home': (context) => HomeScreen(),
+        '/login': (context) => const LoginScreen(),
+        '/profile': (context) => const ProfileScreen(),
+        '/home': (context) => const HomeScreen(),
       },
       builder: (context, child) {
         return MediaQuery(

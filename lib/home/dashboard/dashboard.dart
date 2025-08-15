@@ -332,7 +332,7 @@ class _DashboardState extends State<Dashboard> {
               () {
                 Navigator.pushNamed(context, '/home');
                 // Navigate to invoices tab and open create invoice
-                DefaultTabController.of(context)?.animateTo(1);
+                // Index 1 is now invoices
               },
             ),
             const SizedBox(width: 16),

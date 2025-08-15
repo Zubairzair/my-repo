@@ -54,6 +54,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
     _customerEmailController.dispose();
     _customerPhoneController.dispose();
     _discountController.dispose();
+    _extraDiscountController.dispose();
     _taxController.dispose();
     _notesController.dispose();
     super.dispose();

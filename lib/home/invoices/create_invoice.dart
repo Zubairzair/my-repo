@@ -951,6 +951,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
     _customerEmailController.clear();
     _customerPhoneController.clear();
     _discountController.text = '0';
+    _extraDiscountController.text = '0';
     _taxController.text = '17';
     _notesController.clear();
     setState(() {

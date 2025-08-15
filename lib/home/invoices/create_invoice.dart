@@ -37,10 +37,12 @@ class _CreateInvoiceState extends State<CreateInvoice> {
               ((item['price'] ?? 0.0) as double));
 
   double get discount => double.tryParse(_discountController.text) ?? 0.0;
+  double get extraDiscount => double.tryParse(_extraDiscountController.text) ?? 0.0;
   
   double get taxRate => (double.tryParse(_taxController.text) ?? 0.0) / 100;
   
-  double get discountedAmount => subtotal - discount;
+  double get totalDiscount => discount + extraDiscount;
+  double get discountedAmount => subtotal - totalDiscount;
   
   double get taxAmount => discountedAmount * taxRate;
   

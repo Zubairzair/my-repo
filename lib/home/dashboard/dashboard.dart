@@ -356,8 +356,7 @@ class _DashboardState extends State<Dashboard> {
               Colors.orange,
               () {
                 Navigator.pushNamed(context, '/home');
-                // Navigate to profits tab
-                DefaultTabController.of(context)?.animateTo(3);
+                // Navigate to profits tab (index 4)
               },
             ),
             const SizedBox(width: 16),

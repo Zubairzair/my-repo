@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "903765575810",
+    "project_id": "salles-176c9",
+    "storage_bucket": "salles-176c9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:903765575810:android:ddfb259f8de501720fcc9b",
+        "android_client_info": {
+          "package_name": "com.example.vyapar_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCYe0oYHPTk62awkc4PlW2bOScSiRyMwzo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -65,7 +65,7 @@ class _LoginBodyState extends State<LoginBody> {
                 icon: Icon(
                   Icons.business,
                   size: 130,
-                  color: Colors.blueAccent.shade300,
+                  color: Colors.blueAccent,
                 ),
                 padding: EdgeInsets.zero,
                 onPressed: () {},

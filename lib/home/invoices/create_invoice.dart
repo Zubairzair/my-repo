@@ -12,16 +12,20 @@ class _CreateInvoiceState extends State<CreateInvoice> {
   final _formKey = GlobalKey<FormState>();
   final _customerController = TextEditingController();
   final _discountController = TextEditingController(text: '0');
-  
+
   List<Map<String, dynamic>> items = [
     {'name': '', 'quantity': 1, 'price': 0.0}
   ];
 
-  double get subtotal => items.fold(0, (sum, item) => 
-    sum + (item['quantity'] * item['price']));
-  
-  double get discount => double.tryParse(_discountController.text) ?? 0;
-  
+  double get subtotal => items.fold(
+      0.0,
+          (sum, item) =>
+      sum +
+          ((item['quantity'] ?? 1) as int) *
+              ((item['price'] ?? 0.0) as double));
+
+  double get discount => double.tryParse(_discountController.text) ?? 0.0;
+
   double get total => subtotal - discount;
 
   @override
@@ -50,7 +54,6 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Customer Information
                     _buildSectionHeader('Customer Information'),
                     TextFormField(
                       controller: _customerController,
@@ -68,7 +71,6 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Items Section
                     _buildSectionHeader('Items'),
                     ...items.asMap().entries.map((entry) {
                       int index = entry.key;
@@ -86,7 +88,6 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Discount Section
                     _buildSectionHeader('Discount'),
                     TextFormField(
                       controller: _discountController,
@@ -101,14 +102,11 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Summary Section
                     _buildSummarySection(),
                   ],
                 ),
               ),
             ),
-
-            // Bottom Action Section
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -169,6 +167,9 @@ class _CreateInvoiceState extends State<CreateInvoice> {
   }
 
   Widget _buildItemRow(int index) {
+    final qty = (items[index]['quantity'] ?? 1) as int;
+    final price = (items[index]['price'] ?? 0.0) as double;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -199,7 +200,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
           ),
           const SizedBox(height: 12),
           TextFormField(
-            initialValue: items[index]['name'],
+            initialValue: items[index]['name'] ?? '',
             decoration: const InputDecoration(
               labelText: 'Item Name *',
               border: OutlineInputBorder(),
@@ -222,7 +223,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
             children: [
               Expanded(
                 child: TextFormField(
-                  initialValue: items[index]['quantity'].toString(),
+                  initialValue: qty.toString(),
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: const InputDecoration(
@@ -236,7 +237,10 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                     });
                   },
                   validator: (value) {
-                    if (value == null || value.isEmpty || int.tryParse(value) == null || int.parse(value) <= 0) {
+                    if (value == null ||
+                        value.isEmpty ||
+                        int.tryParse(value) == null ||
+                        int.parse(value) <= 0) {
                       return 'Valid qty required';
                     }
                     return null;
@@ -247,7 +251,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
               Expanded(
                 flex: 2,
                 child: TextFormField(
-                  initialValue: items[index]['price'].toString(),
+                  initialValue: price.toString(),
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
                     labelText: 'Price (₹) *',
@@ -260,7 +264,10 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                     });
                   },
                   validator: (value) {
-                    if (value == null || value.isEmpty || double.tryParse(value) == null || double.parse(value) <= 0) {
+                    if (value == null ||
+                        value.isEmpty ||
+                        double.tryParse(value) == null ||
+                        double.parse(value) <= 0) {
                       return 'Valid price required';
                     }
                     return null;
@@ -273,7 +280,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
           Align(
             alignment: Alignment.centerRight,
             child: Text(
-              'Total: ₹${(items[index]['quantity'] * items[index]['price']).toStringAsFixed(2)}',
+              'Total: ₹${(qty * price).toStringAsFixed(2)}',
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 color: Colors.blueAccent,
@@ -356,12 +363,10 @@ class _CreateInvoiceState extends State<CreateInvoice> {
 
   void _saveInvoice() {
     if (_formKey.currentState!.validate()) {
-      // Validate that all items have names
-      bool allItemsValid = items.every((item) => 
-        item['name'].toString().isNotEmpty && 
-        item['quantity'] > 0 && 
-        item['price'] > 0
-      );
+      bool allItemsValid = items.every((item) =>
+      (item['name'] ?? '').toString().isNotEmpty &&
+          ((item['quantity'] ?? 0) as int) > 0 &&
+          ((item['price'] ?? 0.0) as double) > 0);
 
       if (!allItemsValid) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -370,10 +375,9 @@ class _CreateInvoiceState extends State<CreateInvoice> {
         return;
       }
 
-      // Generate invoice ID
-      final invoiceId = 'INV-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-      
-      // Create invoice object
+      final invoiceId =
+          'INV-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+
       final invoice = {
         'id': invoiceId,
         'customer': _customerController.text,
@@ -385,7 +389,6 @@ class _CreateInvoiceState extends State<CreateInvoice> {
         'items': List.from(items),
       };
 
-      // Show success dialog
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -396,7 +399,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
             children: [
               Text('Invoice ID: ${invoice['id']}'),
               Text('Customer: ${invoice['customer']}'),
-              Text('Amount: ₹${invoice['finalAmount'].toStringAsFixed(2)}'),
+              Text('Amount: ₹${(invoice['finalAmount'] as double).toStringAsFixed(2)}'),
             ],
           ),
           actions: [

@@ -52,6 +52,8 @@ dependencies:
   flutter_secure_storage: ^9.2.4        # Fixes Android namespace issue
   flutter_cache_manager: ^3.4.1         # Latest compatible
   permission_handler: ^12.0.1
+  firebase_core: ^4.0.0
+  cloud_firestore: ^6.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

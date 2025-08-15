@@ -779,6 +779,8 @@ class _CreateInvoiceState extends State<CreateInvoice> {
         'pricing': {
           'subtotal': subtotal,
           'discount': discount,
+          'extraDiscount': extraDiscount,
+          'totalDiscount': totalDiscount,
           'discountedAmount': discountedAmount,
           'taxRate': taxRate * 100, // Store as percentage
           'taxAmount': taxAmount,

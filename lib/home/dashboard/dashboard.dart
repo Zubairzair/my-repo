@@ -157,39 +157,50 @@ class _DashboardState extends State<Dashboard> {
           return dueDate.isBefore(now) && data['status'] == 'Pending';
         }).length;
 
-        return GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 1.2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          children: [
-            _buildStatCard(
-              'Total Invoices',
-              totalInvoices.toString(),
-              Icons.receipt_long,
-              Colors.blue,
-            ),
-            _buildStatCard(
-              'Pending',
-              pendingInvoices.toString(),
-              Icons.pending,
-              Colors.orange,
-            ),
-            _buildStatCard(
-              'Paid Amount',
-              'PKR ${paidAmount.toStringAsFixed(0)}',
-              Icons.check_circle,
-              Colors.green,
-            ),
-            _buildStatCard(
-              'Overdue',
-              overdueInvoices.toString(),
-              Icons.warning,
-              Colors.red,
-            ),
-          ],
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // Responsive design based on screen width
+              int crossAxisCount = constraints.maxWidth > 600 ? 4 : 2;
+              double childAspectRatio = constraints.maxWidth > 600 ? 1.5 : 1.3;
+              
+              return GridView.count(
+                crossAxisCount: crossAxisCount,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                childAspectRatio: childAspectRatio,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                children: [
+                  _buildStatCard(
+                    'Total Invoices',
+                    totalInvoices.toString(),
+                    Icons.receipt_long,
+                    Colors.blue,
+                  ),
+                  _buildStatCard(
+                    'Pending',
+                    pendingInvoices.toString(),
+                    Icons.pending,
+                    Colors.orange,
+                  ),
+                  _buildStatCard(
+                    'Paid Amount',
+                    'PKR ${_formatAmount(paidAmount)}',
+                    Icons.check_circle,
+                    Colors.green,
+                  ),
+                  _buildStatCard(
+                    'Overdue',
+                    overdueInvoices.toString(),
+                    Icons.warning,
+                    Colors.red,
+                  ),
+                ],
+              );
+            },
+          ),
         );
       },
     );

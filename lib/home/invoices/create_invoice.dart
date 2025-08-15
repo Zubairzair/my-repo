@@ -771,6 +771,20 @@ class _CreateInvoiceState extends State<CreateInvoice> {
           .doc(invoiceId)
           .set(invoice);
 
+      // Automatically add transaction for invoice (like Udhar Book)
+      await FirebaseFirestore.instance
+          .collection('transactions')
+          .add({
+        'userId': user.uid,
+        'type': 'Invoice Payment',
+        'description': 'Invoice ${invoiceId} - ${_customerController.text}',
+        'amount': total,
+        'category': 'Sales',
+        'createdAt': now.toIso8601String(),
+        'date': now.toString().substring(0, 10),
+        'relatedInvoiceId': invoiceId,
+      });
+
       if (mounted) {
         _showSuccessDialog(invoice);
       }

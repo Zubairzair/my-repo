@@ -583,7 +583,9 @@ class _InvoicesState extends State<Invoices> {
             children: [
               _buildDetailRow('Subtotal', 'PKR ${(pricing['subtotal'] as double).toStringAsFixed(2)}'),
               if (pricing['discount'] > 0)
-                _buildDetailRow('Discount', '- PKR ${(pricing['discount'] as double).toStringAsFixed(2)}'),
+                _buildDetailRow('Item Discount', '- PKR ${(pricing['discount'] as double).toStringAsFixed(2)}'),
+              if (pricing['extraDiscount'] != null && pricing['extraDiscount'] > 0)
+                _buildDetailRow('Extra Discount', '- PKR ${(pricing['extraDiscount'] as double).toStringAsFixed(2)}'),
               if (pricing['taxAmount'] > 0)
                 _buildDetailRow('Tax (${pricing['taxRate']}%)', 'PKR ${(pricing['taxAmount'] as double).toStringAsFixed(2)}'),
               const Divider(),

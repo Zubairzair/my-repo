@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:vyapar_app/config/session_manager.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -9,218 +10,247 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
-  String userName = "User";
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserName();
-  }
-
-  _loadUserName() async {
-    final name = await SessionManager().getFirstName();
-    if (name != null) {
-      setState(() {
-        userName = name;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildWelcomeSection(),
+            const SizedBox(height: 24),
+            _buildStatsGrid(),
+            const SizedBox(height: 24),
+            _buildQuickActions(),
+            const SizedBox(height: 24),
+            _buildRecentInvoices(),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.blueAccent.withOpacity(0.1),
+            Colors.blue.withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+      ),
+      child: Row(
         children: [
-          // Welcome Card
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blueAccent, Colors.blueAccent.shade400],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Welcome back, $userName!',
-                  style: const TextStyle(
-                    color: Colors.white,
+                const Text(
+                  'Welcome to Dashboard',
+                  style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Here\'s your business overview',
+                Text(
+                  'Manage your sales and track performance',
                   style: TextStyle(
-                    color: Colors.white70,
                     fontSize: 16,
+                    color: Colors.grey[600],
                   ),
+                ),
+                const SizedBox(height: 16),
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('invoices')
+                      .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const SizedBox.shrink();
+                    
+                    final invoices = snapshot.data!.docs;
+                    final totalAmount = invoices.fold<double>(0, (sum, doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      return sum + (data['pricing']['total'] as double? ?? 0);
+                    });
+
+                    return Text(
+                      'Total Sales: PKR ${totalAmount.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueAccent,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-
-          // Stats Cards
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  'Today\'s Sales',
-                  '₹12,450',
-                  Icons.trending_up,
-                  Colors.green,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatCard(
-                  'Total Invoices',
-                  '24',
-                  Icons.receipt_long,
-                  Colors.blue,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  'Profit Margin',
-                  '18.5%',
-                  Icons.show_chart,
-                  Colors.orange,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatCard(
-                  'Stock Items',
-                  '156',
-                  Icons.inventory,
-                  Colors.purple,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Quick Actions
-          const Text(
-            'Quick Actions',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blueAccent.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-          ),
-          const SizedBox(height: 16),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.5,
-            children: [
-              _buildActionCard(
-                'Create Invoice',
-                Icons.add_business,
-                Colors.green,
-                () => Navigator.pushNamed(context, '/create-invoice'),
-              ),
-              _buildActionCard(
-                'Stock Report',
-                Icons.assessment,
-                Colors.blue,
-                () => {},
-              ),
-              _buildActionCard(
-                'View Profits',
-                Icons.account_balance_wallet,
-                Colors.orange,
-                () => {},
-              ),
-              _buildActionCard(
-                'Payment Ledger',
-                Icons.payment,
-                Colors.purple,
-                () => {},
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Recent Activity
-          const Text(
-            'Recent Activity',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+            child: const Icon(
+              Icons.dashboard,
+              size: 40,
+              color: Colors.blueAccent,
             ),
-          ),
-          const SizedBox(height: 16),
-          _buildActivityTile(
-            'Invoice #INV-001 created',
-            'Amount: ₹2,500 • Customer: John Doe',
-            '2 hours ago',
-            Icons.receipt,
-          ),
-          _buildActivityTile(
-            'Payment received',
-            'Amount: ₹1,800 • Invoice #INV-002',
-            '4 hours ago',
-            Icons.payment,
-          ),
-          _buildActivityTile(
-            'Stock updated',
-            'Product: Laptop • Quantity: +10',
-            '1 day ago',
-            Icons.inventory_2,
           ),
         ],
       ),
     );
   }
 
+  Widget _buildStatsGrid() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('invoices')
+          .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData) {
+          return _buildEmptyStatsGrid();
+        }
+
+        final invoices = snapshot.data!.docs;
+        final totalInvoices = invoices.length;
+        final pendingInvoices = invoices.where((doc) => doc['status'] == 'Pending').length;
+        final paidInvoices = invoices.where((doc) => doc['status'] == 'Paid').length;
+        
+        final totalAmount = invoices.fold<double>(0, (sum, doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return sum + (data['pricing']['total'] as double? ?? 0);
+        });
+
+        final paidAmount = invoices
+            .where((doc) => doc['status'] == 'Paid')
+            .fold<double>(0, (sum, doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return sum + (data['pricing']['total'] as double? ?? 0);
+        });
+
+        final pendingAmount = totalAmount - paidAmount;
+
+        // Calculate overdue invoices
+        final now = DateTime.now();
+        final overdueInvoices = invoices.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final dueDate = DateTime.parse(data['dueDate']);
+          return dueDate.isBefore(now) && data['status'] == 'Pending';
+        }).length;
+
+        return GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 1.2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          children: [
+            _buildStatCard(
+              'Total Invoices',
+              totalInvoices.toString(),
+              Icons.receipt_long,
+              Colors.blue,
+            ),
+            _buildStatCard(
+              'Pending',
+              pendingInvoices.toString(),
+              Icons.pending,
+              Colors.orange,
+            ),
+            _buildStatCard(
+              'Paid Amount',
+              'PKR ${paidAmount.toStringAsFixed(0)}',
+              Icons.check_circle,
+              Colors.green,
+            ),
+            _buildStatCard(
+              'Overdue',
+              overdueInvoices.toString(),
+              Icons.warning,
+              Colors.red,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildEmptyStatsGrid() {
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      childAspectRatio: 1.2,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      children: [
+        _buildStatCard('Total Invoices', '0', Icons.receipt_long, Colors.blue),
+        _buildStatCard('Pending', '0', Icons.pending, Colors.orange),
+        _buildStatCard('Paid Amount', 'PKR 0', Icons.check_circle, Colors.green),
+        _buildStatCard('Overdue', '0', Icons.warning, Colors.red),
+      ],
+    );
+  }
+
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 6,
-            offset: const Offset(0, 3),
+            color: Colors.black.withOpacity(0.05),
+            spreadRadius: 0,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 24),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 28,
+            ),
+          ),
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: color,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
           Text(
@@ -228,70 +258,249 @@ class _DashboardState extends State<Dashboard> {
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildActionCard(String title, IconData icon, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 6,
-              offset: const Offset(0, 3),
+  Widget _buildQuickActions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Quick Actions',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            _buildActionCard(
+              'Create Invoice',
+              Icons.add_circle_outline,
+              Colors.blueAccent,
+              () {
+                Navigator.pushNamed(context, '/home');
+                // Navigate to invoices tab and open create invoice
+                DefaultTabController.of(context)?.animateTo(1);
+              },
+            ),
+            const SizedBox(width: 16),
+            _buildActionCard(
+              'View Reports',
+              Icons.analytics_outlined,
+              Colors.green,
+              () {
+                Navigator.pushNamed(context, '/home');
+                // Navigate to stock/reports tab
+                DefaultTabController.of(context)?.animateTo(2);
+              },
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        const SizedBox(height: 16),
+        Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: color, size: 24),
+            _buildActionCard(
+              'Check Profits',
+              Icons.trending_up_outlined,
+              Colors.orange,
+              () {
+                Navigator.pushNamed(context, '/home');
+                // Navigate to profits tab
+                DefaultTabController.of(context)?.animateTo(3);
+              },
             ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
+            const SizedBox(width: 16),
+            _buildActionCard(
+              'Profile Settings',
+              Icons.person_outline,
+              Colors.purple,
+              () {
+                Navigator.pushNamed(context, '/profile');
+              },
             ),
           ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionCard(String title, IconData icon, Color color, VoidCallback onTap) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: color.withOpacity(0.2),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                spreadRadius: 0,
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildActivityTile(String title, String subtitle, String time, IconData icon) {
+  Widget _buildRecentInvoices() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Recent Invoices',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/home');
+                // Navigate to invoices tab
+                DefaultTabController.of(context)?.animateTo(1);
+              },
+              child: const Text('View All'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('invoices')
+              .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+              .orderBy('createdAt', descending: true)
+              .limit(3)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return _buildEmptyRecentInvoices();
+            }
+
+            final invoices = snapshot.data!.docs;
+            return Column(
+              children: invoices.map((doc) {
+                final invoice = doc.data() as Map<String, dynamic>;
+                return _buildRecentInvoiceCard(invoice);
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyRecentInvoices() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            spreadRadius: 0,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.receipt_long_outlined,
+            size: 48,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No invoices yet',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Create your first invoice to see it here',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentInvoiceCard(Map<String, dynamic> invoice) {
+    final createdAt = DateTime.parse(invoice['createdAt']);
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.05),
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: const Offset(0, 1),
+            color: Colors.black.withOpacity(0.05),
+            spreadRadius: 0,
+            blurRadius: 6,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -301,26 +510,30 @@ class _DashboardState extends State<Dashboard> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: Colors.blueAccent.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: Colors.blueAccent, size: 20),
+            child: const Icon(
+              Icons.receipt,
+              color: Colors.blueAccent,
+              size: 20,
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  invoice['customer']['name'],
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  subtitle,
+                  '${createdAt.day}/${createdAt.month}/${createdAt.year}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -329,15 +542,48 @@ class _DashboardState extends State<Dashboard> {
               ],
             ),
           ),
-          Text(
-            time,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[500],
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                'PKR ${(invoice['pricing']['total'] as double).toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(invoice['status']).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  invoice['status'],
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _getStatusColor(invoice['status']),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Paid':
+        return Colors.green;
+      case 'Overdue':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
   }
 }

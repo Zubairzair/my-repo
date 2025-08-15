@@ -64,7 +64,7 @@ class MyApp extends StatelessWidget {
               )),
       initialRoute: iRoute,
       routes: {
-        '/login': (context) => const LoginScreen(),
+        '/login': (context) => const LoginBlocScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/home': (context) => const HomeScreen(),
       },

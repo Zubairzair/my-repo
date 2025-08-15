@@ -445,8 +445,7 @@ class _DashboardState extends State<Dashboard> {
             TextButton(
               onPressed: () {
                 Navigator.pushNamed(context, '/home');
-                // Navigate to invoices tab
-                DefaultTabController.of(context)?.animateTo(1);
+                // Navigate to invoices tab (index 1)
               },
               child: const Text('View All'),
             ),

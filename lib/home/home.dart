@@ -4,6 +4,7 @@ import 'package:vyapar_app/home/invoices/invoices.dart';
 import 'package:vyapar_app/home/stock/stock_reports.dart';
 import 'package:vyapar_app/home/dashboard/dashboard.dart';
 import 'package:vyapar_app/home/profits/profits.dart';
+import 'package:vyapar_app/home/transactions/transactions.dart';
 import 'package:vyapar_app/config/session_manager.dart';
 
 import 'account.dart';

@@ -207,20 +207,40 @@ class _DashboardState extends State<Dashboard> {
   }
 
   Widget _buildEmptyStatsGrid() {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.2,
-      crossAxisSpacing: 16,
-      mainAxisSpacing: 16,
-      children: [
-        _buildStatCard('Total Invoices', '0', Icons.receipt_long, Colors.blue),
-        _buildStatCard('Pending', '0', Icons.pending, Colors.orange),
-        _buildStatCard('Paid Amount', 'PKR 0', Icons.check_circle, Colors.green),
-        _buildStatCard('Overdue', '0', Icons.warning, Colors.red),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          int crossAxisCount = constraints.maxWidth > 600 ? 4 : 2;
+          double childAspectRatio = constraints.maxWidth > 600 ? 1.5 : 1.3;
+          
+          return GridView.count(
+            crossAxisCount: crossAxisCount,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            childAspectRatio: childAspectRatio,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            children: [
+              _buildStatCard('Total Invoices', '0', Icons.receipt_long, Colors.blue),
+              _buildStatCard('Pending', '0', Icons.pending, Colors.orange),
+              _buildStatCard('Paid Amount', 'PKR 0', Icons.check_circle, Colors.green),
+              _buildStatCard('Overdue', '0', Icons.warning, Colors.red),
+            ],
+          );
+        },
+      ),
     );
+  }
+
+  String _formatAmount(double amount) {
+    if (amount >= 100000) {
+      return '${(amount / 100000).toStringAsFixed(1)}L';
+    } else if (amount >= 1000) {
+      return '${(amount / 1000).toStringAsFixed(1)}K';
+    } else {
+      return amount.toStringAsFixed(0);
+    }
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {

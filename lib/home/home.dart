@@ -190,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               child: Row(
-                children: List.generate(5, (index) {
+                children: List.generate(6, (index) {
                   return Expanded(
                     child: Container(
                       height: 4,

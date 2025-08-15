@@ -5,7 +5,7 @@ import 'package:vyapar_app/profile/profile.dart';
 import 'config/constants.dart';
 import 'config/session_manager.dart';
 import 'home/home.dart';
-import 'login/login.dart';
+import 'login/login_bloc_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 

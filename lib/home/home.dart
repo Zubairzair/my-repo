@@ -213,6 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: const [
                   Dashboard(),
                   Invoices(),
+                  Transactions(),
                   StockReports(),
                   Profits(),
                   Account()

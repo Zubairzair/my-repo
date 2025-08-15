@@ -342,8 +342,7 @@ class _DashboardState extends State<Dashboard> {
               Colors.green,
               () {
                 Navigator.pushNamed(context, '/home');
-                // Navigate to stock/reports tab
-                DefaultTabController.of(context)?.animateTo(2);
+                // Navigate to stock/reports tab (index 3)
               },
             ),
           ],

@@ -16,6 +16,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
   final _customerEmailController = TextEditingController();
   final _customerPhoneController = TextEditingController();
   final _discountController = TextEditingController(text: '0');
+  final _extraDiscountController = TextEditingController(text: '0');
   final _taxController = TextEditingController(text: '17'); // 17% GST for Pakistan
   final _notesController = TextEditingController();
 

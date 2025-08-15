@@ -476,7 +476,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                 controller: _discountController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Discount (PKR)',
+                  labelText: 'Item Discount (PKR)',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -486,6 +486,25 @@ class _CreateInvoiceState extends State<CreateInvoice> {
               ),
             ),
             const SizedBox(width: 16),
+            Expanded(
+              child: TextFormField(
+                controller: _extraDiscountController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Extra Discount (PKR)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  prefixIcon: const Icon(Icons.local_offer_outlined, color: Colors.purple),
+                ),
+                onChanged: (value) => setState(() {}),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
             Expanded(
               child: TextFormField(
                 controller: _taxController,
@@ -500,29 +519,31 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                 onChanged: (value) => setState(() {}),
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<String>(
-          value: _selectedPaymentTerms,
-          decoration: InputDecoration(
-            labelText: 'Payment Terms',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+            const SizedBox(width: 16),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _selectedPaymentTerms,
+                decoration: InputDecoration(
+                  labelText: 'Payment Terms',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  prefixIcon: const Icon(Icons.schedule_outlined, color: Colors.blue),
+                ),
+                items: _paymentTermsOptions.map((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedPaymentTerms = newValue!;
+                  });
+                },
+              ),
             ),
-            prefixIcon: const Icon(Icons.schedule_outlined, color: Colors.blue),
-          ),
-          items: _paymentTermsOptions.map((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(value),
-            );
-          }).toList(),
-          onChanged: (String? newValue) {
-            setState(() {
-              _selectedPaymentTerms = newValue!;
-            });
-          },
+          ],
         ),
       ],
     );

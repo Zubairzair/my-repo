@@ -237,9 +237,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: EdgeInsets.symmetric(
+              horizontal: MediaQuery.of(context).size.width * 0.02, 
+              vertical: 8
+            ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'),
                 _buildNavItem(1, Icons.receipt_long_outlined, Icons.receipt_long, 'Invoices'),

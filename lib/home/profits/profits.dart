@@ -287,10 +287,10 @@ class _ProfitsState extends State<Profits> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: _buildSummaryCard(
-                            'Pending Payments',
-                            'PKR ${pendingAmount.toStringAsFixed(0)}',
-                            Icons.schedule,
-                            Colors.red,
+                            'This Month',
+                            'PKR ${thisMonthRevenue.toStringAsFixed(0)}',
+                            Icons.calendar_today,
+                            Colors.purple,
                           ),
                         ),
                       ],

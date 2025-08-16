@@ -101,9 +101,9 @@ class _InvoicesState extends State<Invoices> {
           children: [
             _buildStatCard('Total', totalInvoices.toString(), Icons.receipt_long, Colors.blue),
             const SizedBox(width: 12),
-            _buildStatCard('Pending', pendingInvoices.toString(), Icons.pending, Colors.orange),
+            _buildStatCard('Paid', paidInvoices.toString(), Icons.check_circle, Colors.green),
             const SizedBox(width: 12),
-            _buildStatCard('Amount', 'PKR ${totalAmount.toStringAsFixed(0)}', Icons.attach_money, Colors.green),
+            _buildStatCard('Amount', 'PKR ${totalAmount.toStringAsFixed(0)}', Icons.attach_money, Colors.purple),
           ],
         );
       },

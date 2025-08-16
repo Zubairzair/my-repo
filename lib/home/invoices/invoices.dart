@@ -297,20 +297,10 @@ class _InvoicesState extends State<Invoices> {
   Widget _buildInvoiceCard(Map<String, dynamic> invoice) {
     final createdAt = DateTime.parse(invoice['createdAt']);
     final dueDate = DateTime.parse(invoice['dueDate']);
-    final isOverdue = dueDate.isBefore(DateTime.now()) && invoice['status'] == 'Pending';
-    final status = isOverdue ? 'Overdue' : invoice['status'];
     
-    Color statusColor;
-    switch (status) {
-      case 'Paid':
-        statusColor = Colors.green;
-        break;
-      case 'Overdue':
-        statusColor = Colors.red;
-        break;
-      default:
-        statusColor = Colors.orange;
-    }
+    // All invoices are now considered "Paid" by default
+    const status = 'Paid';
+    const statusColor = Colors.green;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),

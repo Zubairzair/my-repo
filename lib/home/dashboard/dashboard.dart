@@ -162,30 +162,15 @@ class _DashboardState extends State<Dashboard> {
 
         final invoices = snapshot.data!.docs;
         final totalInvoices = invoices.length;
-        final pendingInvoices = invoices.where((doc) => doc['status'] == 'Pending').length;
-        final paidInvoices = invoices.where((doc) => doc['status'] == 'Paid').length;
+        final paidInvoices = totalInvoices; // All invoices are paid now
         
         final totalAmount = invoices.fold<double>(0, (sum, doc) {
           final data = doc.data() as Map<String, dynamic>;
           return sum + (data['pricing']['total'] as double? ?? 0);
         });
 
-        final paidAmount = invoices
-            .where((doc) => doc['status'] == 'Paid')
-            .fold<double>(0, (sum, doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return sum + (data['pricing']['total'] as double? ?? 0);
-        });
-
-        final pendingAmount = totalAmount - paidAmount;
-
-        // Calculate overdue invoices
-        final now = DateTime.now();
-        final overdueInvoices = invoices.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final dueDate = DateTime.parse(data['dueDate']);
-          return dueDate.isBefore(now) && data['status'] == 'Pending';
-        }).length;
+        // Since all invoices are paid by default, paid amount = total amount
+        final paidAmount = totalAmount;
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -219,22 +204,22 @@ class _DashboardState extends State<Dashboard> {
                   Colors.blue,
                 ),
                 _buildStatCard(
-                  'Pending',
-                  pendingInvoices.toString(),
-                  Icons.pending,
-                  Colors.orange,
-                ),
-                _buildStatCard(
-                  'Paid Amount',
-                  'PKR ${_formatAmount(paidAmount)}',
+                  'Paid Invoices',
+                  paidInvoices.toString(),
                   Icons.check_circle,
                   Colors.green,
                 ),
                 _buildStatCard(
-                  'Overdue',
-                  overdueInvoices.toString(),
-                  Icons.warning,
-                  Colors.red,
+                  'Total Revenue',
+                  'PKR ${_formatAmount(paidAmount)}',
+                  Icons.trending_up,
+                  Colors.purple,
+                ),
+                _buildStatCard(
+                  'This Month',
+                  '${DateTime.now().day}/${DateTime.now().month}',
+                  Icons.calendar_today,
+                  Colors.orange,
                 ),
               ],
             );
@@ -270,9 +255,9 @@ class _DashboardState extends State<Dashboard> {
           mainAxisSpacing: 12,
           children: [
             _buildStatCard('Total Invoices', '0', Icons.receipt_long, Colors.blue),
-            _buildStatCard('Pending', '0', Icons.pending, Colors.orange),
-            _buildStatCard('Paid Amount', 'PKR 0', Icons.check_circle, Colors.green),
-            _buildStatCard('Overdue', '0', Icons.warning, Colors.red),
+            _buildStatCard('Paid Invoices', '0', Icons.check_circle, Colors.green),
+            _buildStatCard('Total Revenue', 'PKR 0', Icons.trending_up, Colors.purple),
+            _buildStatCard('This Month', '${DateTime.now().day}/${DateTime.now().month}', Icons.calendar_today, Colors.orange),
           ],
         );
       },
@@ -689,14 +674,14 @@ class _DashboardState extends State<Dashboard> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: _getStatusColor(invoice['status']).withOpacity(0.1),
+                            color: Colors.green.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Text(
-                            invoice['status'],
+                          child: const Text(
+                            'Paid',
                             style: TextStyle(
                               fontSize: 12,
-                              color: _getStatusColor(invoice['status']),
+                              color: Colors.green,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -725,14 +710,14 @@ class _DashboardState extends State<Dashboard> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(invoice['status']).withOpacity(0.1),
+                        color: Colors.green.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Text(
-                        invoice['status'],
+                      child: const Text(
+                        'Paid',
                         style: TextStyle(
                           fontSize: 12,
-                          color: _getStatusColor(invoice['status']),
+                          color: Colors.green,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

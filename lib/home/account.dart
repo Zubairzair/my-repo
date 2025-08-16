@@ -241,18 +241,11 @@ class _AccountState extends State<Account> {
     Color color,
     VoidCallback onTap,
   ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.05),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            spreadRadius: 0,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: ListTile(
         onTap: onTap,
@@ -296,116 +289,113 @@ class _AccountState extends State<Account> {
   Widget _buildAppInfo() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
+      child: Card(
+        elevation: 2,
+        shadowColor: Colors.black.withOpacity(0.05),
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              spreadRadius: 0,
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blueAccent.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.business,
+                      color: Colors.blueAccent,
+                      size: 24,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.business,
-                    color: Colors.blueAccent,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Sales & Marketing App',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Sales & Marketing App',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Version 1.0.0',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
+                        Text(
+                          'Version 1.0.0',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 16),
-            
-            const Divider(),
-            
-            const SizedBox(height: 16),
-            
-            const Text(
-              'Professional invoice management and sales tracking for your business. Built with modern technology and designed for Pakistani businesses.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.black54,
-                height: 1.4,
+                ],
               ),
-              textAlign: TextAlign.center,
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                TextButton.icon(
-                  onPressed: () {
-                    _showComingSoonDialog('Privacy Policy');
-                  },
-                  icon: const Icon(Icons.privacy_tip_outlined, size: 16),
-                  label: const Text('Privacy'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.blueAccent,
-                  ),
+              
+              const SizedBox(height: 16),
+              
+              const Divider(),
+              
+              const SizedBox(height: 16),
+              
+              const Text(
+                'Professional invoice management and sales tracking for your business. Built with modern technology and designed for Pakistani businesses.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.black54,
+                  height: 1.4,
                 ),
-                TextButton.icon(
-                  onPressed: () {
-                    _showComingSoonDialog('Terms of Service');
-                  },
-                  icon: const Icon(Icons.description_outlined, size: 16),
-                  label: const Text('Terms'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.blueAccent,
+                textAlign: TextAlign.center,
+              ),
+              
+              const SizedBox(height: 16),
+              
+              Wrap(
+                alignment: WrapAlignment.spaceEvenly,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  TextButton.icon(
+                    onPressed: () {
+                      _showComingSoonDialog('Privacy Policy');
+                    },
+                    icon: const Icon(Icons.privacy_tip_outlined, size: 16),
+                    label: const Text('Privacy'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.blueAccent,
+                    ),
                   ),
-                ),
-                TextButton.icon(
-                  onPressed: () {
-                    _showSupportDialog();
-                  },
-                  icon: const Icon(Icons.feedback_outlined, size: 16),
-                  label: const Text('Feedback'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.blueAccent,
+                  TextButton.icon(
+                    onPressed: () {
+                      _showComingSoonDialog('Terms of Service');
+                    },
+                    icon: const Icon(Icons.description_outlined, size: 16),
+                    label: const Text('Terms'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.blueAccent,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                  TextButton.icon(
+                    onPressed: () {
+                      _showSupportDialog();
+                    },
+                    icon: const Icon(Icons.feedback_outlined, size: 16),
+                    label: const Text('Feedback'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.blueAccent,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -497,22 +487,24 @@ class _AccountState extends State<Account> {
           borderRadius: BorderRadius.circular(16),
         ),
         title: const Text('Support & Help'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Need help with the app? Here are some ways to get support:'),
-            SizedBox(height: 16),
-            Text('• Check the in-app help sections'),
-            Text('• Contact us through app feedback'),
-            Text('• Visit our website for tutorials'),
-            Text('• Email us for technical support'),
-            SizedBox(height: 16),
-            Text(
-              'We\'re here to help you manage your business better!',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ],
+        content: const SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Need help with the app? Here are some ways to get support:'),
+              SizedBox(height: 16),
+              Text('• Check the in-app help sections'),
+              Text('• Contact us through app feedback'),
+              Text('• Visit our website for tutorials'),
+              Text('• Email us for technical support'),
+              SizedBox(height: 16),
+              Text(
+                'We\'re here to help you manage your business better!',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(

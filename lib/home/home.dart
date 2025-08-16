@@ -4,7 +4,6 @@ import 'package:vyapar_app/home/invoices/invoices.dart';
 import 'package:vyapar_app/home/stock/stock_reports.dart';
 import 'package:vyapar_app/home/dashboard/dashboard.dart';
 import 'package:vyapar_app/home/profits/profits.dart';
-import 'package:vyapar_app/home/transactions/transactions.dart';
 import 'package:vyapar_app/config/session_manager.dart';
 
 import 'account.dart';
@@ -190,7 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
               child: Row(
-                children: List.generate(6, (index) {
+                children: List.generate(5, (index) {
                   return Expanded(
                     child: Container(
                       height: 4,
@@ -213,7 +212,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: const [
                   Dashboard(),
                   Invoices(),
-                  Transactions(),
                   StockReports(),
                   Profits(),
                   Account()
@@ -247,10 +245,9 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'),
                 _buildNavItem(1, Icons.receipt_long_outlined, Icons.receipt_long, 'Invoices'),
-                _buildNavItem(2, Icons.account_balance_wallet_outlined, Icons.account_balance_wallet, 'Transactions'),
-                _buildNavItem(3, Icons.inventory_2_outlined, Icons.inventory_2, 'Stock'),
-                _buildNavItem(4, Icons.trending_up_outlined, Icons.trending_up, 'Profits'),
-                _buildNavItem(5, Icons.person_outline_rounded, Icons.person, 'Account'),
+                _buildNavItem(2, Icons.inventory_2_outlined, Icons.inventory_2, 'Stock'),
+                _buildNavItem(3, Icons.trending_up_outlined, Icons.trending_up, 'Profits'),
+                _buildNavItem(4, Icons.person_outline_rounded, Icons.person, 'Account'),
               ],
             ),
           ),

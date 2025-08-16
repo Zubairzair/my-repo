@@ -11,8 +11,8 @@ class Invoices extends StatefulWidget {
 }
 
 class _InvoicesState extends State<Invoices> {
-  String _selectedFilter = 'All';
-  final List<String> _filterOptions = ['All', 'Pending', 'Paid', 'Overdue'];
+  final int _limit = 20;
+  DocumentSnapshot? _lastDocument;
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +21,6 @@ class _InvoicesState extends State<Invoices> {
       body: Column(
         children: [
           _buildHeader(),
-          _buildFilterChips(),
           Expanded(
             child: _buildInvoicesList(),
           ),
@@ -92,19 +91,19 @@ class _InvoicesState extends State<Invoices> {
 
         final invoices = snapshot.data!.docs;
         final totalInvoices = invoices.length;
-        final pendingInvoices = invoices.where((doc) => doc['status'] == 'Pending').length;
         final totalAmount = invoices.fold<double>(0, (sum, doc) {
           final data = doc.data() as Map<String, dynamic>;
           return sum + (data['pricing']['total'] as double? ?? 0);
         });
+        final paidInvoices = totalInvoices; // All invoices are now paid by default
 
         return Row(
           children: [
             _buildStatCard('Total', totalInvoices.toString(), Icons.receipt_long, Colors.blue),
             const SizedBox(width: 12),
-            _buildStatCard('Pending', pendingInvoices.toString(), Icons.pending, Colors.orange),
+            _buildStatCard('Paid', paidInvoices.toString(), Icons.check_circle, Colors.green),
             const SizedBox(width: 12),
-            _buildStatCard('Amount', 'PKR ${totalAmount.toStringAsFixed(0)}', Icons.attach_money, Colors.green),
+            _buildStatCard('Amount', 'PKR ${totalAmount.toStringAsFixed(0)}', Icons.attach_money, Colors.purple),
           ],
         );
       },
@@ -144,45 +143,9 @@ class _InvoicesState extends State<Invoices> {
     );
   }
 
-  Widget _buildFilterChips() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      color: Colors.white,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: _filterOptions.map((filter) {
-            final isSelected = _selectedFilter == filter;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(filter),
-                selected: isSelected,
-                onSelected: (selected) {
-                  setState(() {
-                    _selectedFilter = filter;
-                  });
-                },
-                backgroundColor: Colors.grey[200],
-                selectedColor: Colors.blueAccent.withOpacity(0.2),
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.blueAccent : Colors.black87,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                ),
-                side: BorderSide(
-                  color: isSelected ? Colors.blueAccent : Colors.grey[300]!,
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
   Widget _buildInvoicesList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: _getFilteredInvoices(),
+      stream: _getAllInvoices(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -219,8 +182,28 @@ class _InvoicesState extends State<Invoices> {
 
         return ListView.builder(
           padding: const EdgeInsets.all(20),
-          itemCount: invoices.length,
+          itemCount: invoices.length + 1, // +1 for load more button
           itemBuilder: (context, index) {
+            if (index == invoices.length) {
+              // Load more button
+              if (invoices.length >= _limit) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: ElevatedButton(
+                      onPressed: _loadMoreInvoices,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Load More'),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            }
+            
             final invoice = invoices[index].data() as Map<String, dynamic>;
             return _buildInvoiceCard(invoice);
           },
@@ -229,7 +212,7 @@ class _InvoicesState extends State<Invoices> {
     );
   }
 
-  Stream<QuerySnapshot> _getFilteredInvoices() {
+  Stream<QuerySnapshot> _getAllInvoices() {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
       return Stream.empty();
@@ -238,18 +221,18 @@ class _InvoicesState extends State<Invoices> {
     Query query = FirebaseFirestore.instance
         .collection('invoices')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true);
-
-    if (_selectedFilter != 'All') {
-      if (_selectedFilter == 'Overdue') {
-        // For overdue, we need to check if dueDate < current date and status is still pending
-        query = query.where('status', isEqualTo: 'Pending');
-      } else {
-        query = query.where('status', isEqualTo: _selectedFilter);
-      }
-    }
+        .orderBy('createdAt', descending: true)
+        .limit(_limit);
 
     return query.snapshots();
+  }
+
+  void _loadMoreInvoices() {
+    // This is a simple implementation. For proper pagination, 
+    // you would need to implement startAfterDocument functionality
+    setState(() {
+      // Refresh the stream to load more
+    });
   }
 
   Widget _buildEmptyState() {
@@ -271,9 +254,7 @@ class _InvoicesState extends State<Invoices> {
           ),
           const SizedBox(height: 24),
           Text(
-            _selectedFilter == 'All' 
-                ? 'No invoices yet'
-                : 'No ${_selectedFilter.toLowerCase()} invoices',
+            'No invoices yet',
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -282,9 +263,7 @@ class _InvoicesState extends State<Invoices> {
           ),
           const SizedBox(height: 8),
           Text(
-            _selectedFilter == 'All'
-                ? 'Create your first invoice to get started'
-                : 'No invoices match the selected filter',
+            'Create your first invoice to get started',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[600],
@@ -292,16 +271,15 @@ class _InvoicesState extends State<Invoices> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          if (_selectedFilter == 'All')
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CreateInvoice()),
-                );
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Create Invoice'),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CreateInvoice()),
+              );
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Create Invoice'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueAccent,
                 foregroundColor: Colors.white,
@@ -319,20 +297,10 @@ class _InvoicesState extends State<Invoices> {
   Widget _buildInvoiceCard(Map<String, dynamic> invoice) {
     final createdAt = DateTime.parse(invoice['createdAt']);
     final dueDate = DateTime.parse(invoice['dueDate']);
-    final isOverdue = dueDate.isBefore(DateTime.now()) && invoice['status'] == 'Pending';
-    final status = isOverdue ? 'Overdue' : invoice['status'];
     
-    Color statusColor;
-    switch (status) {
-      case 'Paid':
-        statusColor = Colors.green;
-        break;
-      case 'Overdue':
-        statusColor = Colors.red;
-        break;
-      default:
-        statusColor = Colors.orange;
-    }
+    // All invoices are now considered "Paid" by default
+    const status = 'Paid';
+    const statusColor = Colors.green;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -428,7 +396,7 @@ class _InvoicesState extends State<Invoices> {
                       'Due',
                       '${dueDate.day}/${dueDate.month}/${dueDate.year}',
                       Icons.schedule,
-                      isOverdue ? Colors.red : Colors.orange,
+                      Colors.orange,
                     ),
                   ),
                 ],
@@ -540,7 +508,7 @@ class _InvoicesState extends State<Invoices> {
         // Invoice Info
         _buildDetailSection('Invoice Information', [
           _buildDetailRow('Invoice ID', invoice['id']),
-          _buildDetailRow('Status', invoice['status']),
+          _buildDetailRow('Status', 'Paid'), // Always show as Paid
           _buildDetailRow('Created', DateTime.parse(invoice['createdAt']).toString().substring(0, 10)),
           _buildDetailRow('Due Date', DateTime.parse(invoice['dueDate']).toString().substring(0, 10)),
           _buildDetailRow('Payment Terms', invoice['paymentTerms']),

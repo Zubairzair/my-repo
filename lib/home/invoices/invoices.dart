@@ -396,7 +396,7 @@ class _InvoicesState extends State<Invoices> {
                       'Due',
                       '${dueDate.day}/${dueDate.month}/${dueDate.year}',
                       Icons.schedule,
-                      isOverdue ? Colors.red : Colors.orange,
+                      Colors.orange,
                     ),
                   ),
                 ],

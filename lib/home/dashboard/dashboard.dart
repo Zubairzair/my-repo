@@ -15,7 +15,10 @@ class _DashboardState extends State<Dashboard> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.of(context).size.width * 0.04,
+          vertical: 16,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -26,7 +29,7 @@ class _DashboardState extends State<Dashboard> {
             _buildQuickActions(),
             const SizedBox(height: 24),
             _buildRecentInvoices(),
-            const SizedBox(height: 20),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
           ],
         ),
       ),
@@ -35,7 +38,8 @@ class _DashboardState extends State<Dashboard> {
 
   Widget _buildWelcomeSection() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.05),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -48,69 +52,95 @@ class _DashboardState extends State<Dashboard> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Welcome to Dashboard',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Manage your sales and track performance',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('invoices')
-                      .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const SizedBox.shrink();
-                    
-                    final invoices = snapshot.data!.docs;
-                    final totalAmount = invoices.fold<double>(0, (sum, doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      return sum + (data['pricing']['total'] as double? ?? 0);
-                    });
-
-                    return Text(
-                      'Total Sales: PKR ${totalAmount.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueAccent,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          bool isTablet = constraints.maxWidth > 600;
+          
+          return Flex(
+            direction: isTablet ? Axis.horizontal : Axis.vertical,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: isTablet 
+                ? CrossAxisAlignment.center 
+                : CrossAxisAlignment.start,
+            children: [
+              Flexible(
+                flex: isTablet ? 3 : 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Welcome to Dashboard',
+                        style: TextStyle(
+                          fontSize: isTablet ? 28 : 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
-                    );
-                  },
+                    ),
+                    const SizedBox(height: 8),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Manage your sales and track performance',
+                        style: TextStyle(
+                          fontSize: isTablet ? 18 : 16,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('invoices')
+                          .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) return const SizedBox.shrink();
+                        
+                        final invoices = snapshot.data!.docs;
+                        final totalAmount = invoices.fold<double>(0, (sum, doc) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          return sum + (data['pricing']['total'] as double? ?? 0);
+                        });
+
+                        return FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Total Sales: PKR ${totalAmount.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: isTablet ? 20 : 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blueAccent,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.blueAccent.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.dashboard,
-              size: 40,
-              color: Colors.blueAccent,
-            ),
-          ),
-        ],
+              ),
+              if (isTablet) const SizedBox(width: 20),
+              if (!isTablet) const SizedBox(height: 16),
+              Flexible(
+                flex: isTablet ? 1 : 0,
+                child: Container(
+                  padding: EdgeInsets.all(isTablet ? 20 : 16),
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.dashboard,
+                    size: isTablet ? 48 : 40,
+                    color: Colors.blueAccent,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -157,79 +187,95 @@ class _DashboardState extends State<Dashboard> {
           return dueDate.isBefore(now) && data['status'] == 'Pending';
         }).length;
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              // Responsive design based on screen width
-              int crossAxisCount = constraints.maxWidth > 600 ? 4 : 2;
-              double childAspectRatio = constraints.maxWidth > 600 ? 1.5 : 1.3;
-              
-              return GridView.count(
-                crossAxisCount: crossAxisCount,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                childAspectRatio: childAspectRatio,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                children: [
-                  _buildStatCard(
-                    'Total Invoices',
-                    totalInvoices.toString(),
-                    Icons.receipt_long,
-                    Colors.blue,
-                  ),
-                  _buildStatCard(
-                    'Pending',
-                    pendingInvoices.toString(),
-                    Icons.pending,
-                    Colors.orange,
-                  ),
-                  _buildStatCard(
-                    'Paid Amount',
-                    'PKR ${_formatAmount(paidAmount)}',
-                    Icons.check_circle,
-                    Colors.green,
-                  ),
-                  _buildStatCard(
-                    'Overdue',
-                    overdueInvoices.toString(),
-                    Icons.warning,
-                    Colors.red,
-                  ),
-                ],
-              );
-            },
-          ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            // Responsive design based on screen width
+            int crossAxisCount = 2;
+            double childAspectRatio = 1.2;
+            
+            if (constraints.maxWidth > 900) {
+              crossAxisCount = 4;
+              childAspectRatio = 1.3;
+            } else if (constraints.maxWidth > 600) {
+              crossAxisCount = 3;
+              childAspectRatio = 1.25;
+            } else if (constraints.maxWidth > 400) {
+              crossAxisCount = 2;
+              childAspectRatio = 1.15;
+            }
+            
+            return GridView.count(
+              crossAxisCount: crossAxisCount,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              childAspectRatio: childAspectRatio,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              children: [
+                _buildStatCard(
+                  'Total Invoices',
+                  totalInvoices.toString(),
+                  Icons.receipt_long,
+                  Colors.blue,
+                ),
+                _buildStatCard(
+                  'Pending',
+                  pendingInvoices.toString(),
+                  Icons.pending,
+                  Colors.orange,
+                ),
+                _buildStatCard(
+                  'Paid Amount',
+                  'PKR ${_formatAmount(paidAmount)}',
+                  Icons.check_circle,
+                  Colors.green,
+                ),
+                _buildStatCard(
+                  'Overdue',
+                  overdueInvoices.toString(),
+                  Icons.warning,
+                  Colors.red,
+                ),
+              ],
+            );
+          },
         );
       },
     );
   }
 
   Widget _buildEmptyStatsGrid() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          int crossAxisCount = constraints.maxWidth > 600 ? 4 : 2;
-          double childAspectRatio = constraints.maxWidth > 600 ? 1.5 : 1.3;
-          
-          return GridView.count(
-            crossAxisCount: crossAxisCount,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: childAspectRatio,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            children: [
-              _buildStatCard('Total Invoices', '0', Icons.receipt_long, Colors.blue),
-              _buildStatCard('Pending', '0', Icons.pending, Colors.orange),
-              _buildStatCard('Paid Amount', 'PKR 0', Icons.check_circle, Colors.green),
-              _buildStatCard('Overdue', '0', Icons.warning, Colors.red),
-            ],
-          );
-        },
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        int crossAxisCount = 2;
+        double childAspectRatio = 1.2;
+        
+        if (constraints.maxWidth > 900) {
+          crossAxisCount = 4;
+          childAspectRatio = 1.3;
+        } else if (constraints.maxWidth > 600) {
+          crossAxisCount = 3;
+          childAspectRatio = 1.25;
+        } else if (constraints.maxWidth > 400) {
+          crossAxisCount = 2;
+          childAspectRatio = 1.15;
+        }
+        
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: childAspectRatio,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          children: [
+            _buildStatCard('Total Invoices', '0', Icons.receipt_long, Colors.blue),
+            _buildStatCard('Pending', '0', Icons.pending, Colors.orange),
+            _buildStatCard('Paid Amount', 'PKR 0', Icons.check_circle, Colors.green),
+            _buildStatCard('Overdue', '0', Icons.warning, Colors.red),
+          ],
+        );
+      },
     );
   }
 
@@ -245,7 +291,7 @@ class _DashboardState extends State<Dashboard> {
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -260,47 +306,54 @@ class _DashboardState extends State<Dashboard> {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
+          bool isSmallCard = constraints.maxWidth < 120;
+          
           return Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(isSmallCard ? 6 : 8),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   icon,
                   color: color,
-                  size: constraints.maxWidth > 120 ? 24 : 20,
+                  size: isSmallCard ? 18 : 20,
                 ),
               ),
-              const SizedBox(height: 8),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: constraints.maxWidth > 120 ? 18 : 16,
-                    fontWeight: FontWeight.bold,
-                    color: color,
+              SizedBox(height: isSmallCard ? 4 : 8),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: isSmallCard ? 14 : 16,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
                   ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
                 ),
               ),
-              const SizedBox(height: 4),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: constraints.maxWidth > 120 ? 12 : 10,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
+              SizedBox(height: isSmallCard ? 2 : 4),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: isSmallCard ? 9 : 11,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
                   ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
                 ),
               ),
             ],
@@ -323,105 +376,125 @@ class _DashboardState extends State<Dashboard> {
           ),
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            _buildActionCard(
-              'Create Invoice',
-              Icons.add_circle_outline,
-              Colors.blueAccent,
-              () {
-                Navigator.pushNamed(context, '/home');
-                // Navigate to invoices tab and open create invoice
-                // Index 1 is now invoices
-              },
-            ),
-            const SizedBox(width: 16),
-            _buildActionCard(
-              'View Reports',
-              Icons.analytics_outlined,
-              Colors.green,
-              () {
-                Navigator.pushNamed(context, '/home');
-                // Navigate to stock/reports tab (index 3)
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            _buildActionCard(
-              'Check Profits',
-              Icons.trending_up_outlined,
-              Colors.orange,
-              () {
-                Navigator.pushNamed(context, '/home');
-                // Navigate to profits tab (index 4)
-              },
-            ),
-            const SizedBox(width: 16),
-            _buildActionCard(
-              'Profile Settings',
-              Icons.person_outline,
-              Colors.purple,
-              () {
-                Navigator.pushNamed(context, '/profile');
-              },
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            bool isTablet = constraints.maxWidth > 600;
+            
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                SizedBox(
+                  width: isTablet 
+                      ? (constraints.maxWidth - 36) / 4 
+                      : (constraints.maxWidth - 12) / 2,
+                  child: _buildActionCard(
+                    'Create Invoice',
+                    Icons.add_circle_outline,
+                    Colors.blueAccent,
+                    () {
+                      Navigator.pushNamed(context, '/home');
+                    },
+                  ),
+                ),
+                SizedBox(
+                  width: isTablet 
+                      ? (constraints.maxWidth - 36) / 4 
+                      : (constraints.maxWidth - 12) / 2,
+                  child: _buildActionCard(
+                    'View Reports',
+                    Icons.analytics_outlined,
+                    Colors.green,
+                    () {
+                      Navigator.pushNamed(context, '/home');
+                    },
+                  ),
+                ),
+                SizedBox(
+                  width: isTablet 
+                      ? (constraints.maxWidth - 36) / 4 
+                      : (constraints.maxWidth - 12) / 2,
+                  child: _buildActionCard(
+                    'Check Profits',
+                    Icons.trending_up_outlined,
+                    Colors.orange,
+                    () {
+                      Navigator.pushNamed(context, '/home');
+                    },
+                  ),
+                ),
+                SizedBox(
+                  width: isTablet 
+                      ? (constraints.maxWidth - 36) / 4 
+                      : (constraints.maxWidth - 12) / 2,
+                  child: _buildActionCard(
+                    'Profile Settings',
+                    Icons.person_outline,
+                    Colors.purple,
+                    () {
+                      Navigator.pushNamed(context, '/profile');
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
   }
 
   Widget _buildActionCard(String title, IconData icon, Color color, VoidCallback onTap) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: color.withOpacity(0.2),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                spreadRadius: 0,
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: color.withOpacity(0.2),
           ),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 24,
-                ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              spreadRadius: 0,
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
               ),
-              const SizedBox(height: 12),
-              Text(
+              child: Icon(
+                icon,
+                color: color,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 12),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
                 title,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
                 ),
                 textAlign: TextAlign.center,
+                maxLines: 2,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -434,18 +507,22 @@ class _DashboardState extends State<Dashboard> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Recent Invoices',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+            const Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'Recent Invoices',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
               ),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pushNamed(context, '/home');
-                // Navigate to invoices tab (index 1)
               },
               child: const Text('View All'),
             ),
@@ -483,6 +560,7 @@ class _DashboardState extends State<Dashboard> {
 
   Widget _buildEmptyRecentInvoices() {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -544,74 +622,127 @@ class _DashboardState extends State<Dashboard> {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.blueAccent.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.receipt,
-              color: Colors.blueAccent,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  invoice['customer']['name'],
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          bool isNarrow = constraints.maxWidth < 350;
+          
+          return Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.receipt,
+                      color: Colors.blueAccent,
+                      size: 20,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${createdAt.day}/${createdAt.month}/${createdAt.year}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            invoice['customer']['name'],
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${createdAt.day}/${createdAt.month}/${createdAt.year}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  if (!isNarrow) ...[
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'PKR ${(invoice['pricing']['total'] as double).toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(invoice['status']).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            invoice['status'],
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _getStatusColor(invoice['status']),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+              if (isNarrow) ...[
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'PKR ${(invoice['pricing']['total'] as double).toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(invoice['status']).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        invoice['status'],
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _getStatusColor(invoice['status']),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                'PKR ${(invoice['pricing']['total'] as double).toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(invoice['status']).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  invoice['status'],
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: _getStatusColor(invoice['status']),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }

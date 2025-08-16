@@ -162,30 +162,15 @@ class _DashboardState extends State<Dashboard> {
 
         final invoices = snapshot.data!.docs;
         final totalInvoices = invoices.length;
-        final pendingInvoices = invoices.where((doc) => doc['status'] == 'Pending').length;
-        final paidInvoices = invoices.where((doc) => doc['status'] == 'Paid').length;
+        final paidInvoices = totalInvoices; // All invoices are paid now
         
         final totalAmount = invoices.fold<double>(0, (sum, doc) {
           final data = doc.data() as Map<String, dynamic>;
           return sum + (data['pricing']['total'] as double? ?? 0);
         });
 
-        final paidAmount = invoices
-            .where((doc) => doc['status'] == 'Paid')
-            .fold<double>(0, (sum, doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return sum + (data['pricing']['total'] as double? ?? 0);
-        });
-
-        final pendingAmount = totalAmount - paidAmount;
-
-        // Calculate overdue invoices
-        final now = DateTime.now();
-        final overdueInvoices = invoices.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final dueDate = DateTime.parse(data['dueDate']);
-          return dueDate.isBefore(now) && data['status'] == 'Pending';
-        }).length;
+        // Since all invoices are paid by default, paid amount = total amount
+        final paidAmount = totalAmount;
 
         return LayoutBuilder(
           builder: (context, constraints) {

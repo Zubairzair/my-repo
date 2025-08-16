@@ -205,7 +205,7 @@ class _AccountState extends State<Account> {
             },
           ),
           
-          const SizedBox(height, 12),
+          const SizedBox(height: 12),
           
           _buildOptionCard(
             'Support & Help',

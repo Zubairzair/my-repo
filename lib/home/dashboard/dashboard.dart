@@ -255,9 +255,9 @@ class _DashboardState extends State<Dashboard> {
           mainAxisSpacing: 12,
           children: [
             _buildStatCard('Total Invoices', '0', Icons.receipt_long, Colors.blue),
-            _buildStatCard('Pending', '0', Icons.pending, Colors.orange),
-            _buildStatCard('Paid Amount', 'PKR 0', Icons.check_circle, Colors.green),
-            _buildStatCard('Overdue', '0', Icons.warning, Colors.red),
+            _buildStatCard('Paid Invoices', '0', Icons.check_circle, Colors.green),
+            _buildStatCard('Total Revenue', 'PKR 0', Icons.trending_up, Colors.purple),
+            _buildStatCard('This Month', '${DateTime.now().day}/${DateTime.now().month}', Icons.calendar_today, Colors.orange),
           ],
         );
       },

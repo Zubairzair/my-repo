@@ -508,7 +508,7 @@ class _InvoicesState extends State<Invoices> {
         // Invoice Info
         _buildDetailSection('Invoice Information', [
           _buildDetailRow('Invoice ID', invoice['id']),
-          _buildDetailRow('Status', invoice['status']),
+          _buildDetailRow('Status', 'Paid'), // Always show as Paid
           _buildDetailRow('Created', DateTime.parse(invoice['createdAt']).toString().substring(0, 10)),
           _buildDetailRow('Due Date', DateTime.parse(invoice['dueDate']).toString().substring(0, 10)),
           _buildDetailRow('Payment Terms', invoice['paymentTerms']),

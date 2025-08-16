@@ -764,6 +764,30 @@ class _CreateInvoiceState extends State<CreateInvoice> {
         throw Exception('User not authenticated');
       }
 
+      // Check stock availability first
+      for (var item in items) {
+        final itemName = item['name'] as String;
+        final requiredQuantity = item['quantity'] as int;
+        
+        final stockQuery = await FirebaseFirestore.instance
+            .collection('stock_items')
+            .where('userId', isEqualTo: user.uid)
+            .where('name', isEqualTo: itemName)
+            .get();
+        
+        if (stockQuery.docs.isNotEmpty) {
+          final stockDoc = stockQuery.docs.first;
+          final stockData = stockDoc.data();
+          final currentStock = stockData['quantity'] as int;
+          
+          if (currentStock < requiredQuantity) {
+            throw Exception(
+              'Insufficient stock for "$itemName". Available: $currentStock, Required: $requiredQuantity'
+            );
+          }
+        }
+      }
+
       final invoiceId = 'INV-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
       final now = DateTime.now();
 
@@ -788,7 +812,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
         },
         'paymentTerms': _selectedPaymentTerms,
         'notes': _notesController.text,
-        'status': 'Pending',
+        'status': 'Paid', // Always set to Paid by default
         'createdAt': now.toIso8601String(),
         'dueDate': _calculateDueDate(now, _selectedPaymentTerms).toIso8601String(),
         'currency': 'PKR',
@@ -800,19 +824,32 @@ class _CreateInvoiceState extends State<CreateInvoice> {
           .doc(invoiceId)
           .set(invoice);
 
-      // Automatically add transaction for invoice (like Udhar Book)
-      await FirebaseFirestore.instance
-          .collection('transactions')
-          .add({
-        'userId': user.uid,
-        'type': 'Invoice Payment',
-        'description': 'Invoice ${invoiceId} - ${_customerController.text}',
-        'amount': total,
-        'category': 'Sales',
-        'createdAt': now.toIso8601String(),
-        'date': now.toString().substring(0, 10),
-        'relatedInvoiceId': invoiceId,
-      });
+      // Reduce stock quantities for items that exist in stock
+      for (var item in items) {
+        final itemName = item['name'] as String;
+        final soldQuantity = item['quantity'] as int;
+        
+        final stockQuery = await FirebaseFirestore.instance
+            .collection('stock_items')
+            .where('userId', isEqualTo: user.uid)
+            .where('name', isEqualTo: itemName)
+            .get();
+        
+        if (stockQuery.docs.isNotEmpty) {
+          final stockDoc = stockQuery.docs.first;
+          final stockData = stockDoc.data();
+          final currentStock = stockData['quantity'] as int;
+          final newStock = currentStock - soldQuantity;
+          
+          await FirebaseFirestore.instance
+              .collection('stock_items')
+              .doc(stockDoc.id)
+              .update({
+            'quantity': newStock,
+            'lastUpdated': DateTime.now().toString().substring(0, 10),
+          });
+        }
+      }
 
       if (mounted) {
         _showSuccessDialog(invoice);

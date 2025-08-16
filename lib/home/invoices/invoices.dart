@@ -11,8 +11,8 @@ class Invoices extends StatefulWidget {
 }
 
 class _InvoicesState extends State<Invoices> {
-  String _selectedFilter = 'All';
-  final List<String> _filterOptions = ['All', 'Pending', 'Paid', 'Overdue'];
+  final int _limit = 20;
+  DocumentSnapshot? _lastDocument;
 
   @override
   Widget build(BuildContext context) {

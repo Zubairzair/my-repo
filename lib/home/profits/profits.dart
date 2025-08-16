@@ -491,7 +491,6 @@ class _ProfitsState extends State<Profits> {
       stream: FirebaseFirestore.instance
           .collection('invoices')
           .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-          .where('status', isEqualTo: 'Paid')
           .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {

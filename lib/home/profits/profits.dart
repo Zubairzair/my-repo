@@ -174,9 +174,8 @@ class _ProfitsState extends State<Profits> {
         }
 
         final invoices = snapshot.data!.docs;
-        final paidInvoices = invoices.where((doc) => doc['status'] == 'Paid').toList();
-        
-        final totalRevenue = paidInvoices.fold<double>(0, (sum, doc) {
+        // Since all invoices are paid by default, use all invoices
+        final totalRevenue = invoices.fold<double>(0, (sum, doc) {
           final data = doc.data() as Map<String, dynamic>;
           return sum + (data['pricing']['total'] as double? ?? 0);
         });
@@ -185,9 +184,13 @@ class _ProfitsState extends State<Profits> {
         final totalProfit = totalRevenue - totalCost;
         final profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
-        final pendingAmount = invoices
-            .where((doc) => doc['status'] == 'Pending')
-            .fold<double>(0, (sum, doc) {
+        // Calculate this month's revenue
+        final now = DateTime.now();
+        final thisMonthRevenue = invoices.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final createdAt = DateTime.parse(data['createdAt']);
+          return createdAt.month == now.month && createdAt.year == now.year;
+        }).fold<double>(0, (sum, doc) {
           final data = doc.data() as Map<String, dynamic>;
           return sum + (data['pricing']['total'] as double? ?? 0);
         });

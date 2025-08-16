@@ -21,7 +21,6 @@ class _InvoicesState extends State<Invoices> {
       body: Column(
         children: [
           _buildHeader(),
-          _buildFilterChips(),
           Expanded(
             child: _buildInvoicesList(),
           ),

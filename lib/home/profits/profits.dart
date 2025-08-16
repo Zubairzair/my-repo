@@ -365,7 +365,7 @@ class _ProfitsState extends State<Profits> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildSummaryCard('Pending Payments', 'PKR 0', Icons.schedule, Colors.red),
+                      child: _buildSummaryCard('This Month', 'PKR 0', Icons.calendar_today, Colors.purple),
                     ),
                   ],
                 ),

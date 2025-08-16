@@ -91,11 +91,11 @@ class _InvoicesState extends State<Invoices> {
 
         final invoices = snapshot.data!.docs;
         final totalInvoices = invoices.length;
-        final pendingInvoices = invoices.where((doc) => doc['status'] == 'Pending').length;
         final totalAmount = invoices.fold<double>(0, (sum, doc) {
           final data = doc.data() as Map<String, dynamic>;
           return sum + (data['pricing']['total'] as double? ?? 0);
         });
+        final paidInvoices = totalInvoices; // All invoices are now paid by default
 
         return Row(
           children: [

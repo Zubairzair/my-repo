@@ -254,9 +254,7 @@ class _InvoicesState extends State<Invoices> {
           ),
           const SizedBox(height: 24),
           Text(
-            _selectedFilter == 'All' 
-                ? 'No invoices yet'
-                : 'No ${_selectedFilter.toLowerCase()} invoices',
+            'No invoices yet',
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -265,9 +263,7 @@ class _InvoicesState extends State<Invoices> {
           ),
           const SizedBox(height: 8),
           Text(
-            _selectedFilter == 'All'
-                ? 'Create your first invoice to get started'
-                : 'No invoices match the selected filter',
+            'Create your first invoice to get started',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[600],
@@ -275,16 +271,15 @@ class _InvoicesState extends State<Invoices> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          if (_selectedFilter == 'All')
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CreateInvoice()),
-                );
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Create Invoice'),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CreateInvoice()),
+              );
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Create Invoice'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueAccent,
                 foregroundColor: Colors.white,

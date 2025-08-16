@@ -408,7 +408,7 @@ class _ProfitsState extends State<Profits> {
                 const SizedBox(height: 12),
                 _buildSummaryCard('Profit Margin', '0%', Icons.percent, Colors.orange),
                 const SizedBox(height: 12),
-                _buildSummaryCard('Pending Payments', 'PKR 0', Icons.schedule, Colors.red),
+                _buildSummaryCard('This Month', 'PKR 0', Icons.calendar_today, Colors.purple),
               ],
             );
           }

@@ -674,14 +674,14 @@ class _DashboardState extends State<Dashboard> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: _getStatusColor(invoice['status']).withOpacity(0.1),
+                            color: Colors.green.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Text(
-                            invoice['status'],
+                          child: const Text(
+                            'Paid',
                             style: TextStyle(
                               fontSize: 12,
-                              color: _getStatusColor(invoice['status']),
+                              color: Colors.green,
                               fontWeight: FontWeight.w500,
                             ),
                           ),

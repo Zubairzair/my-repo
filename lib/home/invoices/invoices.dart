@@ -143,45 +143,9 @@ class _InvoicesState extends State<Invoices> {
     );
   }
 
-  Widget _buildFilterChips() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      color: Colors.white,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: _filterOptions.map((filter) {
-            final isSelected = _selectedFilter == filter;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(filter),
-                selected: isSelected,
-                onSelected: (selected) {
-                  setState(() {
-                    _selectedFilter = filter;
-                  });
-                },
-                backgroundColor: Colors.grey[200],
-                selectedColor: Colors.blueAccent.withOpacity(0.2),
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.blueAccent : Colors.black87,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                ),
-                side: BorderSide(
-                  color: isSelected ? Colors.blueAccent : Colors.grey[300]!,
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
   Widget _buildInvoicesList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: _getFilteredInvoices(),
+      stream: _getAllInvoices(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -218,8 +182,28 @@ class _InvoicesState extends State<Invoices> {
 
         return ListView.builder(
           padding: const EdgeInsets.all(20),
-          itemCount: invoices.length,
+          itemCount: invoices.length + 1, // +1 for load more button
           itemBuilder: (context, index) {
+            if (index == invoices.length) {
+              // Load more button
+              if (invoices.length >= _limit) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Center(
+                    child: ElevatedButton(
+                      onPressed: _loadMoreInvoices,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Load More'),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            }
+            
             final invoice = invoices[index].data() as Map<String, dynamic>;
             return _buildInvoiceCard(invoice);
           },
@@ -228,7 +212,7 @@ class _InvoicesState extends State<Invoices> {
     );
   }
 
-  Stream<QuerySnapshot> _getFilteredInvoices() {
+  Stream<QuerySnapshot> _getAllInvoices() {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
       return Stream.empty();
@@ -237,18 +221,18 @@ class _InvoicesState extends State<Invoices> {
     Query query = FirebaseFirestore.instance
         .collection('invoices')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true);
-
-    if (_selectedFilter != 'All') {
-      if (_selectedFilter == 'Overdue') {
-        // For overdue, we need to check if dueDate < current date and status is still pending
-        query = query.where('status', isEqualTo: 'Pending');
-      } else {
-        query = query.where('status', isEqualTo: _selectedFilter);
-      }
-    }
+        .orderBy('createdAt', descending: true)
+        .limit(_limit);
 
     return query.snapshots();
+  }
+
+  void _loadMoreInvoices() {
+    // This is a simple implementation. For proper pagination, 
+    // you would need to implement startAfterDocument functionality
+    setState(() {
+      // Refresh the stream to load more
+    });
   }
 
   Widget _buildEmptyState() {

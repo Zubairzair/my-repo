@@ -21,7 +21,7 @@ class _ProfitsState extends State<Profits> {
         children: [
           _buildHeader(),
           _buildStatsCards(),
-          _buildProfitsList(),
+          Expanded(child: _buildProfitsList()),
         ],
       ),
     );
@@ -29,7 +29,7 @@ class _ProfitsState extends State<Profits> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.05),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -45,93 +45,118 @@ class _ProfitsState extends State<Profits> {
         ),
       ),
       child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            bool isTablet = constraints.maxWidth > 600;
+            
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Profit & Loss',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                Flex(
+                  direction: isTablet ? Axis.horizontal : Axis.vertical,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: isTablet 
+                      ? CrossAxisAlignment.center 
+                      : CrossAxisAlignment.start,
+                  children: [
+                    Flexible(
+                      flex: isTablet ? 3 : 1,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Profit & Loss',
+                              style: TextStyle(
+                                fontSize: isTablet ? 32 : 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Track your business profitability',
+                              style: TextStyle(
+                                fontSize: isTablet ? 18 : 16,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (isTablet) const SizedBox(width: 20),
+                    if (!isTablet) const SizedBox(height: 16),
+                    Flexible(
+                      flex: isTablet ? 1 : 0,
+                      child: Container(
+                        padding: EdgeInsets.all(isTablet ? 20 : 16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.trending_up,
+                          size: isTablet ? 40 : 32,
+                          color: Colors.green,
                         ),
                       ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Track your business profitability',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.trending_up,
-                    size: 32,
-                    color: Colors.green,
+                
+                const SizedBox(height: 20),
+                
+                // Period Filter
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.calendar_today, size: 20, color: Colors.green),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Period: ',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        DropdownButton<String>(
+                          value: selectedPeriod,
+                          underline: const SizedBox.shrink(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              selectedPeriod = newValue!;
+                            });
+                          },
+                          items: periods.map<DropdownMenuItem<String>>((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 20),
-            
-            // Period Filter
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.calendar_today, size: 20, color: Colors.green),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Period: ',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  DropdownButton<String>(
-                    value: selectedPeriod,
-                    underline: const SizedBox.shrink(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        selectedPeriod = newValue!;
-                      });
-                    },
-                    items: periods.map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -168,53 +193,142 @@ class _ProfitsState extends State<Profits> {
         });
 
         return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSummaryCard(
+          padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.05),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth > 800) {
+                // Large screens: 4 cards in 2 rows
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildSummaryCard(
+                            'Total Revenue',
+                            'PKR ${totalRevenue.toStringAsFixed(0)}',
+                            Icons.trending_up,
+                            Colors.blue,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildSummaryCard(
+                            'Total Profit',
+                            'PKR ${totalProfit.toStringAsFixed(0)}',
+                            Icons.account_balance_wallet,
+                            Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildSummaryCard(
+                            'Profit Margin',
+                            '${profitMargin.toStringAsFixed(1)}%',
+                            Icons.percent,
+                            Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildSummaryCard(
+                            'Pending Payments',
+                            'PKR ${pendingAmount.toStringAsFixed(0)}',
+                            Icons.schedule,
+                            Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              } else if (constraints.maxWidth > 400) {
+                // Medium screens: 2 cards per row
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildSummaryCard(
+                            'Total Revenue',
+                            'PKR ${totalRevenue.toStringAsFixed(0)}',
+                            Icons.trending_up,
+                            Colors.blue,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildSummaryCard(
+                            'Total Profit',
+                            'PKR ${totalProfit.toStringAsFixed(0)}',
+                            Icons.account_balance_wallet,
+                            Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildSummaryCard(
+                            'Profit Margin',
+                            '${profitMargin.toStringAsFixed(1)}%',
+                            Icons.percent,
+                            Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildSummaryCard(
+                            'Pending Payments',
+                            'PKR ${pendingAmount.toStringAsFixed(0)}',
+                            Icons.schedule,
+                            Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              } else {
+                // Small screens: Stack vertically
+                return Column(
+                  children: [
+                    _buildSummaryCard(
                       'Total Revenue',
                       'PKR ${totalRevenue.toStringAsFixed(0)}',
                       Icons.trending_up,
                       Colors.blue,
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSummaryCard(
+                    const SizedBox(height: 12),
+                    _buildSummaryCard(
                       'Total Profit',
                       'PKR ${totalProfit.toStringAsFixed(0)}',
                       Icons.account_balance_wallet,
                       Colors.green,
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSummaryCard(
+                    const SizedBox(height: 12),
+                    _buildSummaryCard(
                       'Profit Margin',
                       '${profitMargin.toStringAsFixed(1)}%',
                       Icons.percent,
                       Colors.orange,
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSummaryCard(
+                    const SizedBox(height: 12),
+                    _buildSummaryCard(
                       'Pending Payments',
                       'PKR ${pendingAmount.toStringAsFixed(0)}',
                       Icons.schedule,
                       Colors.red,
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                );
+              }
+            },
           ),
         );
       },
@@ -223,39 +337,86 @@ class _ProfitsState extends State<Profits> {
 
   Widget _buildEmptyStatsCards() {
     return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _buildSummaryCard('Total Revenue', 'PKR 0', Icons.trending_up, Colors.blue),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildSummaryCard('Total Profit', 'PKR 0', Icons.account_balance_wallet, Colors.green),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildSummaryCard('Profit Margin', '0%', Icons.percent, Colors.orange),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildSummaryCard('Pending Payments', 'PKR 0', Icons.schedule, Colors.red),
-              ),
-            ],
-          ),
-        ],
+      padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.05),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 800) {
+            return Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSummaryCard('Total Revenue', 'PKR 0', Icons.trending_up, Colors.blue),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildSummaryCard('Total Profit', 'PKR 0', Icons.account_balance_wallet, Colors.green),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSummaryCard('Profit Margin', '0%', Icons.percent, Colors.orange),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildSummaryCard('Pending Payments', 'PKR 0', Icons.schedule, Colors.red),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          } else if (constraints.maxWidth > 400) {
+            return Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSummaryCard('Total Revenue', 'PKR 0', Icons.trending_up, Colors.blue),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildSummaryCard('Total Profit', 'PKR 0', Icons.account_balance_wallet, Colors.green),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSummaryCard('Profit Margin', '0%', Icons.percent, Colors.orange),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildSummaryCard('Pending Payments', 'PKR 0', Icons.schedule, Colors.red),
+                    ),
+                  ],
+                ),
+              ],
+            );
+          } else {
+            return Column(
+              children: [
+                _buildSummaryCard('Total Revenue', 'PKR 0', Icons.trending_up, Colors.blue),
+                const SizedBox(height: 12),
+                _buildSummaryCard('Total Profit', 'PKR 0', Icons.account_balance_wallet, Colors.green),
+                const SizedBox(height: 12),
+                _buildSummaryCard('Profit Margin', '0%', Icons.percent, Colors.orange),
+                const SizedBox(height: 12),
+                _buildSummaryCard('Pending Payments', 'PKR 0', Icons.schedule, Colors.red),
+              ],
+            );
+          }
+        },
       ),
     );
   }
 
   Widget _buildSummaryCard(String title, String value, IconData icon, Color color) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -269,93 +430,50 @@ class _ProfitsState extends State<Profits> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfitsList() {
-    return Expanded(
-      child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('invoices')
-            .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-            .where('status', isEqualTo: 'Paid')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          final invoices = snapshot.data!.docs;
-
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          bool isLargeCard = constraints.maxWidth > 200;
+          
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Profit Details',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: _showProfitAnalysis,
-                      icon: const Icon(Icons.analytics_outlined, size: 18),
-                      label: const Text('Analysis'),
-                    ),
-                  ],
+              Container(
+                padding: EdgeInsets.all(isLargeCard ? 10 : 8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: isLargeCard ? 24 : 20,
                 ),
               ),
-              
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: invoices.length,
-                  itemBuilder: (context, index) {
-                    final invoice = invoices[index].data() as Map<String, dynamic>;
-                    return _buildProfitCard(invoice);
-                  },
+              SizedBox(height: isLargeCard ? 16 : 12),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: isLargeCard ? 18 : 16,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
+              SizedBox(height: isLargeCard ? 6 : 4),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: isLargeCard ? 14 : 12,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
@@ -365,42 +483,155 @@ class _ProfitsState extends State<Profits> {
     );
   }
 
+  Widget _buildProfitsList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('invoices')
+          .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+          .where('status', isEqualTo: 'Paid')
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return _buildEmptyState();
+        }
+
+        final invoices = snapshot.data!.docs;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 400) {
+                    // Stack title and button vertically on small screens
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Profit Details',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: _showProfitAnalysis,
+                            icon: const Icon(Icons.analytics_outlined, size: 18),
+                            label: const Text('Analysis'),
+                          ),
+                        ),
+                      ],
+                    );
+                  } else {
+                    // Side by side layout for larger screens
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'Profit Details',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: _showProfitAnalysis,
+                          icon: const Icon(Icons.analytics_outlined, size: 18),
+                          label: const Text('Analysis'),
+                        ),
+                      ],
+                    );
+                  }
+                },
+              ),
+            ),
+            
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  bottom: MediaQuery.of(context).padding.bottom + 20,
+                ),
+                itemCount: invoices.length,
+                itemBuilder: (context, index) {
+                  final invoice = invoices[index].data() as Map<String, dynamic>;
+                  return _buildProfitCard(invoice);
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              shape: BoxShape.circle,
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.trending_up_outlined,
+                size: 64,
+                color: Colors.grey[400],
+              ),
             ),
-            child: Icon(
-              Icons.trending_up_outlined,
-              size: 64,
-              color: Colors.grey[400],
+            const SizedBox(height: 24),
+            const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'No profit data yet',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'No profit data yet',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+            const SizedBox(height: 8),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Complete some paid invoices to see your profit analysis',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Complete some paid invoices to see your profit analysis',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -428,150 +659,158 @@ class _ProfitsState extends State<Profits> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            bool isNarrow = constraints.maxWidth < 400;
+            
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        invoice['id'],
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blueAccent,
-                        ),
+                Flex(
+                  direction: isNarrow ? Axis.vertical : Axis.horizontal,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: isNarrow 
+                      ? CrossAxisAlignment.start 
+                      : CrossAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              invoice['id'],
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blueAccent,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              invoice['customer']['name'],
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${createdAt.day}/${createdAt.month}/${createdAt.year}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        invoice['customer']['name'],
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
+                    ),
+                    if (isNarrow) const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${createdAt.day}/${createdAt.month}/${createdAt.year}',
+                      child: const Text(
+                        'PAID',
                         style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
+                          color: Colors.green,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
                         ),
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 16),
+                
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildProfitRow(
+                        'Revenue:',
+                        'PKR ${total.toStringAsFixed(2)}',
+                        Colors.blue,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildProfitRow(
+                        'Est. Cost:',
+                        'PKR ${estimatedCost.toStringAsFixed(2)}',
+                        Colors.red,
+                      ),
+                      const Divider(height: 20),
+                      _buildProfitRow(
+                        'Est. Profit:',
+                        'PKR ${estimatedProfit.toStringAsFixed(2)}',
+                        Colors.green,
+                        isTotal: true,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildProfitRow(
+                        'Margin:',
+                        '${profitMargin.toStringAsFixed(1)}%',
+                        Colors.green,
                       ),
                     ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'PAID',
-                    style: TextStyle(
-                      color: Colors.green,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
                   ),
                 ),
               ],
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Revenue:',
-                        style: TextStyle(color: Colors.black54),
-                      ),
-                      Text(
-                        'PKR ${total.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Est. Cost:',
-                        style: TextStyle(color: Colors.black54),
-                      ),
-                      Text(
-                        'PKR ${estimatedCost.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.red,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Est. Profit:',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      Text(
-                        'PKR ${estimatedProfit.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Margin:',
-                        style: TextStyle(color: Colors.black54),
-                      ),
-                      Text(
-                        '${profitMargin.toStringAsFixed(1)}%',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ),
+    );
+  }
+
+  Widget _buildProfitRow(String label, String value, Color color, {bool isTotal = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: isTotal ? 16 : 14,
+                fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+                color: isTotal ? Colors.black87 : Colors.black54,
+              ),
+            ),
+          ),
+        ),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: isTotal ? 16 : 14,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -694,46 +933,64 @@ class _ProfitsState extends State<Profits> {
 
   Widget _buildInsightCard(String title, String description, IconData icon, Color color) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          bool isNarrow = constraints.maxWidth < 300;
+          
+          return Flex(
+            direction: isNarrow ? Axis.vertical : Axis.horizontal,
+            crossAxisAlignment: isNarrow 
+                ? CrossAxisAlignment.start 
+                : CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[700],
-                  ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              SizedBox(
+                width: isNarrow ? 0 : 16,
+                height: isNarrow ? 12 : 0,
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: color,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }

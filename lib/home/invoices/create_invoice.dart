@@ -474,6 +474,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
     final qty = (items[index]['quantity'] ?? 1) as int;
     final price = (items[index]['price'] ?? 0.0) as double;
     final itemTotal = qty * price;
+    final selectedSku = items[index]['sku'] ?? '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -519,142 +520,241 @@ class _CreateInvoiceState extends State<CreateInvoice> {
           
           const SizedBox(height: 16),
           
-          TextFormField(
-            initialValue: items[index]['name'] ?? '',
+          // Stock Item Selection Dropdown
+          DropdownButtonFormField<String>(
+            value: selectedSku.isEmpty ? null : selectedSku,
             decoration: InputDecoration(
-              labelText: 'Item Name *',
+              labelText: 'Select Item from Stock *',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              prefixIcon: const Icon(Icons.inventory_2, size: 20),
             ),
+            items: [
+              const DropdownMenuItem<String>(
+                value: null,
+                child: Text('Choose an item...'),
+              ),
+              ..._stockItems.map((stockItem) {
+                return DropdownMenuItem<String>(
+                  value: stockItem['sku'],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        stockItem['name'],
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        'SKU: ${stockItem['sku']} | Available: ${stockItem['quantity']} | PKR ${stockItem['price']}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ],
             onChanged: (value) {
-              setState(() {
-                items[index]['name'] = value;
-              });
+              if (value != null) {
+                final stockItem = _stockItems.firstWhere((item) => item['sku'] == value);
+                setState(() {
+                  items[index]['sku'] = stockItem['sku'];
+                  items[index]['name'] = stockItem['name'];
+                  items[index]['price'] = stockItem['price'];
+                  items[index]['description'] = stockItem['description'] ?? '';
+                  items[index]['maxQuantity'] = stockItem['quantity'];
+                  
+                  // Reset quantity to 1 when item changes
+                  if (items[index]['quantity'] > stockItem['quantity']) {
+                    items[index]['quantity'] = 1;
+                  }
+                });
+              }
             },
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter item name';
+                return 'Please select an item';
               }
               return null;
             },
           ),
           
-          const SizedBox(height: 12),
-          
-          TextFormField(
-            initialValue: items[index]['description'] ?? '',
-            decoration: InputDecoration(
-              labelText: 'Description (Optional)',
-              border: OutlineInputBorder(
+          if (selectedSku.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            
+            // Selected Item Details Display
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.05),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
                 borderRadius: BorderRadius.circular(8),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-            maxLines: 2,
-            onChanged: (value) {
-              setState(() {
-                items[index]['description'] = value;
-              });
-            },
-          ),
-          
-          const SizedBox(height: 12),
-          
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  initialValue: qty.toString(),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: InputDecoration(
-                    labelText: 'Quantity *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.blue, size: 16),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Item Selected:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      items[index]['quantity'] = int.tryParse(value) ?? 1;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null ||
-                        value.isEmpty ||
-                        int.tryParse(value) == null ||
-                        int.parse(value) <= 0) {
-                      return 'Valid qty required';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              
-              const SizedBox(width: 12),
-              
-              Expanded(
-                flex: 2,
-                child: TextFormField(
-                  initialValue: price.toString(),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    labelText: 'Price (PKR) *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Name: ${items[index]['name']}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      items[index]['price'] = double.tryParse(value) ?? 0.0;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null ||
-                        value.isEmpty ||
-                        double.tryParse(value) == null ||
-                        double.parse(value) <= 0) {
-                      return 'Valid price required';
-                    }
-                    return null;
-                  },
-                ),
+                  Text('SKU: ${items[index]['sku']}'),
+                  Text('Available Stock: ${items[index]['maxQuantity']}'),
+                  Text('Unit Price: PKR ${price.toStringAsFixed(2)}'),
+                  if (items[index]['description'] != null && items[index]['description'].toString().isNotEmpty)
+                    Text('Description: ${items[index]['description']}'),
+                ],
               ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            
+            const SizedBox(height: 12),
+            
+            // Quantity Input
+            Row(
               children: [
-                const Text(
-                  'Item Total:',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.green,
+                Expanded(
+                  child: TextFormField(
+                    key: ValueKey('quantity_$index'),
+                    initialValue: qty.toString(),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(
+                      labelText: 'Quantity *',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      helperText: 'Max: ${items[index]['maxQuantity']}',
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        final newQty = int.tryParse(value) ?? 1;
+                        final maxQty = items[index]['maxQuantity'] ?? 1;
+                        items[index]['quantity'] = newQty > maxQty ? maxQty : newQty;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty || int.tryParse(value) == null) {
+                        return 'Enter quantity';
+                      }
+                      final enteredQty = int.parse(value);
+                      final maxQty = items[index]['maxQuantity'] ?? 1;
+                      if (enteredQty <= 0) {
+                        return 'Quantity must be > 0';
+                      }
+                      if (enteredQty > maxQty) {
+                        return 'Max: $maxQty';
+                      }
+                      return null;
+                    },
                   ),
                 ),
-                Text(
-                  'PKR ${itemTotal.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                    fontSize: 16,
+                
+                const SizedBox(width: 12),
+                
+                // Price Display (Read-only)
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Unit Price',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        Text(
+                          'PKR ${price.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
+            
+            const SizedBox(height: 12),
+            
+            // Item Total
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Item Total:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green,
+                    ),
+                  ),
+                  Text(
+                    'PKR ${itemTotal.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Please select an item from your stock inventory',
+                      style: TextStyle(color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

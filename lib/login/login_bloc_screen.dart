@@ -200,7 +200,7 @@ class _LoginViewState extends State<LoginView> {
                     // Login Button
                     BlocBuilder<LoginBloc, LoginState>(
                       builder: (context, state) {
-                        final isLoading = state.status == FormzStatus.submissionInProgress;
+                        final isLoading = state.status == FormzSubmissionStatus.inProgress;
                         
                         return SizedBox(
                           width: double.infinity,

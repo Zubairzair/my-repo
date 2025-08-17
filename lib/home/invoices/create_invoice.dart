@@ -254,59 +254,190 @@ class _CreateInvoiceState extends State<CreateInvoice> {
   Widget _buildCustomerSection() {
     return Column(
       children: [
-        TextFormField(
-          controller: _customerController,
+        // Shop Selection Dropdown
+        DropdownButtonFormField<String>(
+          value: _selectedShopId,
           decoration: InputDecoration(
-            labelText: 'Customer Name *',
+            labelText: 'Select Shop/Customer *',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            prefixIcon: const Icon(Icons.business, color: Colors.blueAccent),
+            prefixIcon: const Icon(Icons.store, color: Colors.blueAccent),
+            helperText: 'Choose from your saved shops or add a new one',
           ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter customer name';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: _customerEmailController,
-          keyboardType: TextInputType.emailAddress,
-          decoration: InputDecoration(
-            labelText: 'Customer Email',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+          items: [
+            const DropdownMenuItem<String>(
+              value: null,
+              child: Text('Select a shop...'),
             ),
-            prefixIcon: const Icon(Icons.email_outlined, color: Colors.blueAccent),
-          ),
-          validator: (value) {
-            if (value != null && value.isNotEmpty) {
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                return 'Please enter a valid email';
-              }
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: _customerPhoneController,
-          keyboardType: TextInputType.phone,
-          decoration: InputDecoration(
-            labelText: 'Customer Phone',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            prefixIcon: const Icon(Icons.phone_outlined, color: Colors.blueAccent),
-            prefixText: '+92 ',
-          ),
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(10),
+            ..._shops.map((shop) {
+              return DropdownMenuItem<String>(
+                value: shop['docId'],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      shop['name'],
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      shop['address'] ?? '',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ],
+          onChanged: (value) {
+            setState(() {
+              _selectedShopId = value;
+              _selectedShop = value != null 
+                  ? _shops.firstWhere((shop) => shop['docId'] == value)
+                  : null;
+              
+              if (_selectedShop != null) {
+                _customerController.text = _selectedShop!['name'];
+                _customerEmailController.text = _selectedShop!['email'] ?? '';
+                _customerPhoneController.text = _selectedShop!['phone'] ?? '';
+              }
+            });
+          },
+          validator: (value) {
+            if (value == null) {
+              return 'Please select a shop';
+            }
+            return null;
+          },
         ),
+        
+        const SizedBox(height: 16),
+        
+        // Manual Customer Entry (if no shop selected)
+        if (_selectedShopId == null) ...[
+          TextFormField(
+            controller: _customerController,
+            decoration: InputDecoration(
+              labelText: 'Customer Name *',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              prefixIcon: const Icon(Icons.person, color: Colors.blueAccent),
+              helperText: 'Or enter customer details manually',
+            ),
+            validator: (value) {
+              if (_selectedShopId == null && (value == null || value.isEmpty)) {
+                return 'Please enter customer name or select a shop';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _customerEmailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+              labelText: 'Customer Email',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              prefixIcon: const Icon(Icons.email_outlined, color: Colors.blueAccent),
+            ),
+            validator: (value) {
+              if (value != null && value.isNotEmpty) {
+                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                  return 'Please enter a valid email';
+                }
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _customerPhoneController,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: 'Customer Phone',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              prefixIcon: const Icon(Icons.phone_outlined, color: Colors.blueAccent),
+              prefixText: '+92 ',
+            ),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ],
+          ),
+        ] else ...[
+          // Display selected shop details (read-only)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.05),
+              border: Border.all(color: Colors.green.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 20),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Shop Selected',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Name: ${_selectedShop!['name']}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                if (_selectedShop!['address'] != null) ...[
+                  const SizedBox(height: 4),
+                  Text('Address: ${_selectedShop!['address']}'),
+                ],
+                if (_selectedShop!['phone'] != null) ...[
+                  const SizedBox(height: 4),
+                  Text('Phone: ${_selectedShop!['phone']}'),
+                ],
+                if (_selectedShop!['email'] != null) ...[
+                  const SizedBox(height: 4),
+                  Text('Email: ${_selectedShop!['email']}'),
+                ],
+              ],
+            ),
+          ),
+        ],
+        
+        const SizedBox(height: 16),
+        
+        // Quick Action to Add New Shop
+        if (_shops.isEmpty || _selectedShopId == null) 
+          TextButton.icon(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Go to Account > Shop Management to add new shops'),
+                  backgroundColor: Colors.blue,
+                ),
+              );
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Add New Shop'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.blueAccent,
+            ),
+          ),
       ],
     );
   }

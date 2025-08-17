@@ -167,6 +167,23 @@ class _AccountState extends State<Account> {
           const SizedBox(height: 12),
           
           _buildOptionCard(
+            'Returns Management',
+            'Handle product returns and stock restoration',
+            Icons.assignment_return_outlined,
+            Colors.orange,
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ReturnsManagement(),
+                ),
+              );
+            },
+          ),
+          
+          const SizedBox(height: 12),
+          
+          _buildOptionCard(
             'Business Settings',
             'Manage your business information',
             Icons.business_outlined,

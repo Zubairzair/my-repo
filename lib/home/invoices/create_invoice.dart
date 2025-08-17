@@ -54,6 +54,64 @@ class _CreateInvoiceState extends State<CreateInvoice> {
   double get total => discountedAmount + taxAmount;
 
   @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await Future.wait([
+      _loadStockItems(),
+      _loadShops(),
+    ]);
+  }
+
+  Future<void> _loadStockItems() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return;
+
+      final stockSnapshot = await FirebaseFirestore.instance
+          .collection('stock_items')
+          .where('userId', isEqualTo: userId)
+          .where('quantity', isGreaterThan: 0) // Only show items in stock
+          .get();
+
+      setState(() {
+        _stockItems = stockSnapshot.docs.map((doc) {
+          final data = doc.data();
+          data['docId'] = doc.id;
+          return data;
+        }).toList();
+      });
+    } catch (e) {
+      print('Error loading stock items: $e');
+    }
+  }
+
+  Future<void> _loadShops() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return;
+
+      final shopsSnapshot = await FirebaseFirestore.instance
+          .collection('shops')
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      setState(() {
+        _shops = shopsSnapshot.docs.map((doc) {
+          final data = doc.data();
+          data['docId'] = doc.id;
+          return data;
+        }).toList();
+      });
+    } catch (e) {
+      print('Error loading shops: $e');
+    }
+  }
+
+  @override
   void dispose() {
     _customerController.dispose();
     _customerEmailController.dispose();

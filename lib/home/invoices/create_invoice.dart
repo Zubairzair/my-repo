@@ -1020,7 +1020,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
 
   void _addItem() {
     setState(() {
-      items.add({'name': '', 'quantity': 1, 'price': 0.0, 'description': ''});
+      items.add({'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'description': '', 'maxQuantity': 1});
     });
   }
 

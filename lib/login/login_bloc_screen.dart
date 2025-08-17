@@ -41,14 +41,14 @@ class _LoginViewState extends State<LoginView> {
     return Scaffold(
       body: BlocListener<LoginBloc, LoginState>(
         listener: (context, state) {
-          if (state.status == FormzStatus.submissionFailure) {
+          if (state.status == FormzSubmissionStatus.failure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Colors.red,
               ),
             );
-          } else if (state.status == FormzStatus.submissionSuccess) {
+          } else if (state.status == FormzSubmissionStatus.success) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Login successful!'),

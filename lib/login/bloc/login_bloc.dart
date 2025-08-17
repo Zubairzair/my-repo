@@ -51,13 +51,13 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   ) async {
     if (state.email.isEmpty || state.password.isEmpty) {
       emit(state.copyWith(
-        status: FormzStatus.submissionFailure,
+        status: FormzSubmissionStatus.failure,
         message: 'Please fill in all fields',
       ));
       return;
     }
 
-    emit(state.copyWith(status: FormzStatus.submissionInProgress));
+    emit(state.copyWith(status: FormzSubmissionStatus.inProgress));
     
     try {
       final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -72,7 +72,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         );
         await SessionManager().setEmail(state.email.trim());
         
-        emit(state.copyWith(status: FormzStatus.submissionSuccess));
+        emit(state.copyWith(status: FormzSubmissionStatus.success));
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Login failed';
@@ -86,17 +86,17 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         message = 'Too many failed attempts. Please try again later.';
       }
       emit(state.copyWith(
-        status: FormzStatus.submissionFailure,
+        status: FormzSubmissionStatus.failure,
         message: message,
       ));
     } on SocketException {
       emit(state.copyWith(
-        status: FormzStatus.submissionFailure,
+        status: FormzSubmissionStatus.failure,
         message: AppConstants.connectionError,
       ));
     } catch (e) {
       emit(state.copyWith(
-        status: FormzStatus.submissionFailure,
+        status: FormzSubmissionStatus.failure,
         message: AppConstants.serverError,
       ));
     }

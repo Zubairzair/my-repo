@@ -1261,6 +1261,18 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                     ),
                   ),
                   const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close dialog
+                      _shareInvoiceWhatsApp(invoice);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Share WhatsApp'),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {

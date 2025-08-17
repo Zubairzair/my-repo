@@ -128,7 +128,7 @@ class _LoginViewState extends State<LoginView> {
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
                             ),
-                            errorText: state.status == FormzStatus.submissionFailure && 
+                            errorText: state.status == FormzSubmissionStatus.failure && 
                                      state.message.contains('email') ? state.message : null,
                           ),
                           onChanged: (value) {

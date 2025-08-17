@@ -108,7 +108,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   ) async {
     if (state.email.isEmpty || state.password.isEmpty) {
       emit(state.copyWith(
-        status: FormzStatus.submissionFailure,
+        status: FormzSubmissionStatus.failure,
         message: 'Please fill in all fields',
       ));
       return;
@@ -116,13 +116,13 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
     if (state.password.length < 6) {
       emit(state.copyWith(
-        status: FormzStatus.submissionFailure,
+        status: FormzSubmissionStatus.failure,
         message: 'Password must be at least 6 characters',
       ));
       return;
     }
 
-    emit(state.copyWith(status: FormzStatus.submissionInProgress));
+    emit(state.copyWith(status: FormzSubmissionStatus.inProgress));
     
     try {
       final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -135,7 +135,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         await SessionManager().setFirstName(state.email.split('@')[0]);
         await SessionManager().setEmail(state.email.trim());
         
-        emit(state.copyWith(status: FormzStatus.submissionSuccess));
+        emit(state.copyWith(status: FormzSubmissionStatus.success));
       }
     } on FirebaseAuthException catch (e) {
       String message = 'Sign up failed';
@@ -147,17 +147,17 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         message = 'Invalid email address.';
       }
       emit(state.copyWith(
-        status: FormzStatus.submissionFailure,
+        status: FormzSubmissionStatus.failure,
         message: message,
       ));
     } on SocketException {
       emit(state.copyWith(
-        status: FormzStatus.submissionFailure,
+        status: FormzSubmissionStatus.failure,
         message: AppConstants.connectionError,
       ));
     } catch (e) {
       emit(state.copyWith(
-        status: FormzStatus.submissionFailure,
+        status: FormzSubmissionStatus.failure,
         message: AppConstants.serverError,
       ));
     }

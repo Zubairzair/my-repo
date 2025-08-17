@@ -22,11 +22,15 @@ class _CreateInvoiceState extends State<CreateInvoice> {
   final _notesController = TextEditingController();
 
   List<Map<String, dynamic>> items = [
-    {'name': '', 'quantity': 1, 'price': 0.0, 'description': ''}
+    {'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'description': ''}
   ];
 
   bool _isLoading = false;
   String _selectedPaymentTerms = '30 days';
+  String? _selectedShopId;
+  Map<String, dynamic>? _selectedShop;
+  List<Map<String, dynamic>> _stockItems = [];
+  List<Map<String, dynamic>> _shops = [];
   final List<String> _paymentTermsOptions = ['Immediate', '15 days', '30 days', '45 days', '60 days'];
 
   // Mathematical calculations with proper logic

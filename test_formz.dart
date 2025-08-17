@@ -1,5 +1,7 @@
 import 'package:formz/formz.dart';
 
+enum FormzSubmissionStatus { initial, inProgress, success, failure }
+
 void main() {
-  print(FormzStatus.pure);
+  print(FormzSubmissionStatus.initial);
 }

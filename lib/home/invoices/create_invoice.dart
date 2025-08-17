@@ -1058,25 +1058,29 @@ class _CreateInvoiceState extends State<CreateInvoice> {
         throw Exception('User not authenticated');
       }
 
-      // Check stock availability first
+      // Validate stock availability for all items
       for (var item in items) {
-        final itemName = item['name'] as String;
+        final itemSku = item['sku'] as String;
         final requiredQuantity = item['quantity'] as int;
         
-        final stockQuery = await FirebaseFirestore.instance
-            .collection('stock_items')
-            .where('userId', isEqualTo: user.uid)
-            .where('name', isEqualTo: itemName)
-            .get();
-        
-        if (stockQuery.docs.isNotEmpty) {
+        if (itemSku.isNotEmpty) {  // Only validate if SKU is provided
+          final stockQuery = await FirebaseFirestore.instance
+              .collection('stock_items')
+              .where('userId', isEqualTo: user.uid)
+              .where('sku', isEqualTo: itemSku)
+              .get();
+          
+          if (stockQuery.docs.isEmpty) {
+            throw Exception('Stock item with SKU "$itemSku" not found');
+          }
+          
           final stockDoc = stockQuery.docs.first;
           final stockData = stockDoc.data();
           final currentStock = stockData['quantity'] as int;
           
           if (currentStock < requiredQuantity) {
             throw Exception(
-              'Insufficient stock for "$itemName". Available: $currentStock, Required: $requiredQuantity'
+              'Insufficient stock for "${item['name']}". Available: $currentStock, Required: $requiredQuantity'
             );
           }
         }

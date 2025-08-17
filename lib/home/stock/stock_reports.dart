@@ -551,11 +551,17 @@ class _StockReportsState extends State<StockReports> {
 
   void _showAddStockDialog() {
     final nameController = TextEditingController();
+    final skuController = TextEditingController();
     final categoryController = TextEditingController();
     final quantityController = TextEditingController();
     final minStockController = TextEditingController();
     final priceController = TextEditingController();
     final supplierController = TextEditingController();
+    final descriptionController = TextEditingController();
+
+    // Auto-generate SKU
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    skuController.text = 'SKU${timestamp.toString().substring(8)}';
 
     showDialog(
       context: context,
@@ -564,61 +570,98 @@ class _StockReportsState extends State<StockReports> {
           borderRadius: BorderRadius.circular(16),
         ),
         title: const Text('Add New Stock Item'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Item Name *',
-                  border: OutlineInputBorder(),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Item Name *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.inventory_2),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: categoryController,
-                decoration: const InputDecoration(
-                  labelText: 'Category *',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: skuController,
+                  decoration: const InputDecoration(
+                    labelText: 'SKU Code *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.qr_code),
+                    helperText: 'Unique product identifier',
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: quantityController,
-                decoration: const InputDecoration(
-                  labelText: 'Quantity *',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: categoryController,
+                  decoration: const InputDecoration(
+                    labelText: 'Category *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.category),
+                  ),
                 ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: minStockController,
-                decoration: const InputDecoration(
-                  labelText: 'Minimum Stock *',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.description),
+                  ),
+                  maxLines: 2,
                 ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: priceController,
-                decoration: const InputDecoration(
-                  labelText: 'Price (PKR) *',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: quantityController,
+                        decoration: const InputDecoration(
+                          labelText: 'Quantity *',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.numbers),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: minStockController,
+                        decoration: const InputDecoration(
+                          labelText: 'Min Stock *',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.warning),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                  ],
                 ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: supplierController,
-                decoration: const InputDecoration(
-                  labelText: 'Supplier (Optional)',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: priceController,
+                  decoration: const InputDecoration(
+                    labelText: 'Price (PKR) *',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.attach_money),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                TextField(
+                  controller: supplierController,
+                  decoration: const InputDecoration(
+                    labelText: 'Supplier',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.business),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -629,16 +672,38 @@ class _StockReportsState extends State<StockReports> {
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.isNotEmpty &&
+                  skuController.text.isNotEmpty &&
                   categoryController.text.isNotEmpty &&
                   quantityController.text.isNotEmpty &&
                   minStockController.text.isNotEmpty &&
                   priceController.text.isNotEmpty) {
                 
                 try {
+                  // Check if SKU already exists
+                  final existingSku = await FirebaseFirestore.instance
+                      .collection('stock_items')
+                      .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                      .where('sku', isEqualTo: skuController.text)
+                      .get();
+
+                  if (existingSku.docs.isNotEmpty) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('SKU already exists! Please use a unique SKU.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                    return;
+                  }
+
                   await FirebaseFirestore.instance.collection('stock_items').add({
                     'userId': FirebaseAuth.instance.currentUser?.uid,
                     'name': nameController.text,
+                    'sku': skuController.text,
                     'category': categoryController.text,
+                    'description': descriptionController.text,
                     'quantity': int.parse(quantityController.text),
                     'minStock': int.parse(minStockController.text),
                     'price': double.parse(priceController.text),
@@ -679,7 +744,7 @@ class _StockReportsState extends State<StockReports> {
               backgroundColor: Colors.blueAccent,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Add'),
+            child: const Text('Add Item'),
           ),
         ],
       ),

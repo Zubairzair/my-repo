@@ -31,7 +31,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   ) {
     emit(state.copyWith(
       email: event.email,
-      status: FormzStatus.pure,
+      status: FormzSubmissionStatus.initial,
     ));
   }
 
@@ -41,7 +41,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   ) {
     emit(state.copyWith(
       password: event.password,
-      status: FormzStatus.pure,
+      status: FormzSubmissionStatus.initial,
     ));
   }
 

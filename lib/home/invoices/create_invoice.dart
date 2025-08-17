@@ -1124,28 +1124,30 @@ class _CreateInvoiceState extends State<CreateInvoice> {
 
       // Reduce stock quantities for items that exist in stock
       for (var item in items) {
-        final itemName = item['name'] as String;
+        final itemSku = item['sku'] as String;
         final soldQuantity = item['quantity'] as int;
         
-        final stockQuery = await FirebaseFirestore.instance
-            .collection('stock_items')
-            .where('userId', isEqualTo: user.uid)
-            .where('name', isEqualTo: itemName)
-            .get();
-        
-        if (stockQuery.docs.isNotEmpty) {
-          final stockDoc = stockQuery.docs.first;
-          final stockData = stockDoc.data();
-          final currentStock = stockData['quantity'] as int;
-          final newStock = currentStock - soldQuantity;
-          
-          await FirebaseFirestore.instance
+        if (itemSku.isNotEmpty) {  // Only reduce stock if SKU is provided
+          final stockQuery = await FirebaseFirestore.instance
               .collection('stock_items')
-              .doc(stockDoc.id)
-              .update({
-            'quantity': newStock,
-            'lastUpdated': DateTime.now().toString().substring(0, 10),
-          });
+              .where('userId', isEqualTo: user.uid)
+              .where('sku', isEqualTo: itemSku)
+              .get();
+          
+          if (stockQuery.docs.isNotEmpty) {
+            final stockDoc = stockQuery.docs.first;
+            final stockData = stockDoc.data();
+            final currentStock = stockData['quantity'] as int;
+            final newStock = currentStock - soldQuantity;
+            
+            await FirebaseFirestore.instance
+                .collection('stock_items')
+                .doc(stockDoc.id)
+                .update({
+              'quantity': newStock,
+              'lastUpdated': DateTime.now().toString().substring(0, 10),
+            });
+          }
         }
       }
 

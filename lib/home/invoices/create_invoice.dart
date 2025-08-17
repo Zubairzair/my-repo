@@ -1292,8 +1292,10 @@ class _CreateInvoiceState extends State<CreateInvoice> {
     _taxController.text = '17';
     _notesController.clear();
     setState(() {
-      items = [{'name': '', 'quantity': 1, 'price': 0.0, 'description': ''}];
+      items = [{'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'description': '', 'maxQuantity': 1}];
       _selectedPaymentTerms = '30 days';
+      _selectedShopId = null;
+      _selectedShop = null;
     });
   }
 

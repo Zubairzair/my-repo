@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CreateInvoice extends StatefulWidget {
   const CreateInvoice({super.key});
@@ -21,11 +22,15 @@ class _CreateInvoiceState extends State<CreateInvoice> {
   final _notesController = TextEditingController();
 
   List<Map<String, dynamic>> items = [
-    {'name': '', 'quantity': 1, 'price': 0.0, 'description': ''}
+    {'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'description': ''}
   ];
 
   bool _isLoading = false;
   String _selectedPaymentTerms = '30 days';
+  String? _selectedShopId;
+  Map<String, dynamic>? _selectedShop;
+  List<Map<String, dynamic>> _stockItems = [];
+  List<Map<String, dynamic>> _shops = [];
   final List<String> _paymentTermsOptions = ['Immediate', '15 days', '30 days', '45 days', '60 days'];
 
   // Mathematical calculations with proper logic
@@ -47,6 +52,64 @@ class _CreateInvoiceState extends State<CreateInvoice> {
   double get taxAmount => discountedAmount * taxRate;
   
   double get total => discountedAmount + taxAmount;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await Future.wait([
+      _loadStockItems(),
+      _loadShops(),
+    ]);
+  }
+
+  Future<void> _loadStockItems() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return;
+
+      final stockSnapshot = await FirebaseFirestore.instance
+          .collection('stock_items')
+          .where('userId', isEqualTo: userId)
+          .where('quantity', isGreaterThan: 0) // Only show items in stock
+          .get();
+
+      setState(() {
+        _stockItems = stockSnapshot.docs.map((doc) {
+          final data = doc.data();
+          data['docId'] = doc.id;
+          return data;
+        }).toList();
+      });
+    } catch (e) {
+      print('Error loading stock items: $e');
+    }
+  }
+
+  Future<void> _loadShops() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return;
+
+      final shopsSnapshot = await FirebaseFirestore.instance
+          .collection('shops')
+          .where('userId', isEqualTo: userId)
+          .get();
+
+      setState(() {
+        _shops = shopsSnapshot.docs.map((doc) {
+          final data = doc.data();
+          data['docId'] = doc.id;
+          return data;
+        }).toList();
+      });
+    } catch (e) {
+      print('Error loading shops: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -191,59 +254,190 @@ class _CreateInvoiceState extends State<CreateInvoice> {
   Widget _buildCustomerSection() {
     return Column(
       children: [
-        TextFormField(
-          controller: _customerController,
+        // Shop Selection Dropdown
+        DropdownButtonFormField<String>(
+          value: _selectedShopId,
           decoration: InputDecoration(
-            labelText: 'Customer Name *',
+            labelText: 'Select Shop/Customer *',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            prefixIcon: const Icon(Icons.business, color: Colors.blueAccent),
+            prefixIcon: const Icon(Icons.store, color: Colors.blueAccent),
+            helperText: 'Choose from your saved shops or add a new one',
           ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter customer name';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: _customerEmailController,
-          keyboardType: TextInputType.emailAddress,
-          decoration: InputDecoration(
-            labelText: 'Customer Email',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+          items: [
+            const DropdownMenuItem<String>(
+              value: null,
+              child: Text('Select a shop...'),
             ),
-            prefixIcon: const Icon(Icons.email_outlined, color: Colors.blueAccent),
-          ),
-          validator: (value) {
-            if (value != null && value.isNotEmpty) {
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                return 'Please enter a valid email';
-              }
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: _customerPhoneController,
-          keyboardType: TextInputType.phone,
-          decoration: InputDecoration(
-            labelText: 'Customer Phone',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            prefixIcon: const Icon(Icons.phone_outlined, color: Colors.blueAccent),
-            prefixText: '+92 ',
-          ),
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(10),
+            ..._shops.map((shop) {
+              return DropdownMenuItem<String>(
+                value: shop['docId'],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      shop['name'],
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      shop['address'] ?? '',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ],
+          onChanged: (value) {
+            setState(() {
+              _selectedShopId = value;
+              _selectedShop = value != null 
+                  ? _shops.firstWhere((shop) => shop['docId'] == value)
+                  : null;
+              
+              if (_selectedShop != null) {
+                _customerController.text = _selectedShop!['name'];
+                _customerEmailController.text = _selectedShop!['email'] ?? '';
+                _customerPhoneController.text = _selectedShop!['phone'] ?? '';
+              }
+            });
+          },
+          validator: (value) {
+            if (value == null) {
+              return 'Please select a shop';
+            }
+            return null;
+          },
         ),
+        
+        const SizedBox(height: 16),
+        
+        // Manual Customer Entry (if no shop selected)
+        if (_selectedShopId == null) ...[
+          TextFormField(
+            controller: _customerController,
+            decoration: InputDecoration(
+              labelText: 'Customer Name *',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              prefixIcon: const Icon(Icons.person, color: Colors.blueAccent),
+              helperText: 'Or enter customer details manually',
+            ),
+            validator: (value) {
+              if (_selectedShopId == null && (value == null || value.isEmpty)) {
+                return 'Please enter customer name or select a shop';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _customerEmailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: InputDecoration(
+              labelText: 'Customer Email',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              prefixIcon: const Icon(Icons.email_outlined, color: Colors.blueAccent),
+            ),
+            validator: (value) {
+              if (value != null && value.isNotEmpty) {
+                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                  return 'Please enter a valid email';
+                }
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _customerPhoneController,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: 'Customer Phone',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              prefixIcon: const Icon(Icons.phone_outlined, color: Colors.blueAccent),
+              prefixText: '+92 ',
+            ),
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ],
+          ),
+        ] else ...[
+          // Display selected shop details (read-only)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.05),
+              border: Border.all(color: Colors.green.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 20),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Shop Selected',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Name: ${_selectedShop!['name']}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                if (_selectedShop!['address'] != null) ...[
+                  const SizedBox(height: 4),
+                  Text('Address: ${_selectedShop!['address']}'),
+                ],
+                if (_selectedShop!['phone'] != null) ...[
+                  const SizedBox(height: 4),
+                  Text('Phone: ${_selectedShop!['phone']}'),
+                ],
+                if (_selectedShop!['email'] != null) ...[
+                  const SizedBox(height: 4),
+                  Text('Email: ${_selectedShop!['email']}'),
+                ],
+              ],
+            ),
+          ),
+        ],
+        
+        const SizedBox(height: 16),
+        
+        // Quick Action to Add New Shop
+        if (_shops.isEmpty || _selectedShopId == null) 
+          TextButton.icon(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Go to Account > Shop Management to add new shops'),
+                  backgroundColor: Colors.blue,
+                ),
+              );
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Add New Shop'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.blueAccent,
+            ),
+          ),
       ],
     );
   }
@@ -280,6 +474,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
     final qty = (items[index]['quantity'] ?? 1) as int;
     final price = (items[index]['price'] ?? 0.0) as double;
     final itemTotal = qty * price;
+    final selectedSku = items[index]['sku'] ?? '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -325,142 +520,241 @@ class _CreateInvoiceState extends State<CreateInvoice> {
           
           const SizedBox(height: 16),
           
-          TextFormField(
-            initialValue: items[index]['name'] ?? '',
+          // Stock Item Selection Dropdown
+          DropdownButtonFormField<String>(
+            value: selectedSku.isEmpty ? null : selectedSku,
             decoration: InputDecoration(
-              labelText: 'Item Name *',
+              labelText: 'Select Item from Stock *',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              prefixIcon: const Icon(Icons.inventory_2, size: 20),
             ),
+            items: [
+              const DropdownMenuItem<String>(
+                value: null,
+                child: Text('Choose an item...'),
+              ),
+              ..._stockItems.map((stockItem) {
+                return DropdownMenuItem<String>(
+                  value: stockItem['sku'],
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        stockItem['name'],
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        'SKU: ${stockItem['sku']} | Available: ${stockItem['quantity']} | PKR ${stockItem['price']}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ],
             onChanged: (value) {
-              setState(() {
-                items[index]['name'] = value;
-              });
+              if (value != null) {
+                final stockItem = _stockItems.firstWhere((item) => item['sku'] == value);
+                setState(() {
+                  items[index]['sku'] = stockItem['sku'];
+                  items[index]['name'] = stockItem['name'];
+                  items[index]['price'] = stockItem['price'];
+                  items[index]['description'] = stockItem['description'] ?? '';
+                  items[index]['maxQuantity'] = stockItem['quantity'];
+                  
+                  // Reset quantity to 1 when item changes
+                  if (items[index]['quantity'] > stockItem['quantity']) {
+                    items[index]['quantity'] = 1;
+                  }
+                });
+              }
             },
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter item name';
+                return 'Please select an item';
               }
               return null;
             },
           ),
           
-          const SizedBox(height: 12),
-          
-          TextFormField(
-            initialValue: items[index]['description'] ?? '',
-            decoration: InputDecoration(
-              labelText: 'Description (Optional)',
-              border: OutlineInputBorder(
+          if (selectedSku.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            
+            // Selected Item Details Display
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.05),
+                border: Border.all(color: Colors.blue.withOpacity(0.3)),
                 borderRadius: BorderRadius.circular(8),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-            maxLines: 2,
-            onChanged: (value) {
-              setState(() {
-                items[index]['description'] = value;
-              });
-            },
-          ),
-          
-          const SizedBox(height: 12),
-          
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  initialValue: qty.toString(),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: InputDecoration(
-                    labelText: 'Quantity *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.blue, size: 16),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Item Selected:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      items[index]['quantity'] = int.tryParse(value) ?? 1;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null ||
-                        value.isEmpty ||
-                        int.tryParse(value) == null ||
-                        int.parse(value) <= 0) {
-                      return 'Valid qty required';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              
-              const SizedBox(width: 12),
-              
-              Expanded(
-                flex: 2,
-                child: TextFormField(
-                  initialValue: price.toString(),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    labelText: 'Price (PKR) *',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Name: ${items[index]['name']}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  onChanged: (value) {
-                    setState(() {
-                      items[index]['price'] = double.tryParse(value) ?? 0.0;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null ||
-                        value.isEmpty ||
-                        double.tryParse(value) == null ||
-                        double.parse(value) <= 0) {
-                      return 'Valid price required';
-                    }
-                    return null;
-                  },
-                ),
+                  Text('SKU: ${items[index]['sku']}'),
+                  Text('Available Stock: ${items[index]['maxQuantity']}'),
+                  Text('Unit Price: PKR ${price.toStringAsFixed(2)}'),
+                  if (items[index]['description'] != null && items[index]['description'].toString().isNotEmpty)
+                    Text('Description: ${items[index]['description']}'),
+                ],
               ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            
+            const SizedBox(height: 12),
+            
+            // Quantity Input
+            Row(
               children: [
-                const Text(
-                  'Item Total:',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.green,
+                Expanded(
+                  child: TextFormField(
+                    key: ValueKey('quantity_$index'),
+                    initialValue: qty.toString(),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(
+                      labelText: 'Quantity *',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      helperText: 'Max: ${items[index]['maxQuantity']}',
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        final newQty = int.tryParse(value) ?? 1;
+                        final maxQty = items[index]['maxQuantity'] ?? 1;
+                        items[index]['quantity'] = newQty > maxQty ? maxQty : newQty;
+                      });
+                    },
+                    validator: (value) {
+                      if (value == null || value.isEmpty || int.tryParse(value) == null) {
+                        return 'Enter quantity';
+                      }
+                      final enteredQty = int.parse(value);
+                      final maxQty = items[index]['maxQuantity'] ?? 1;
+                      if (enteredQty <= 0) {
+                        return 'Quantity must be > 0';
+                      }
+                      if (enteredQty > maxQty) {
+                        return 'Max: $maxQty';
+                      }
+                      return null;
+                    },
                   ),
                 ),
-                Text(
-                  'PKR ${itemTotal.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                    fontSize: 16,
+                
+                const SizedBox(width: 12),
+                
+                // Price Display (Read-only)
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Unit Price',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        Text(
+                          'PKR ${price.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
+            
+            const SizedBox(height: 12),
+            
+            // Item Total
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Item Total:',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green,
+                    ),
+                  ),
+                  Text(
+                    'PKR ${itemTotal.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Please select an item from your stock inventory',
+                      style: TextStyle(color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -726,7 +1020,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
 
   void _addItem() {
     setState(() {
-      items.add({'name': '', 'quantity': 1, 'price': 0.0, 'description': ''});
+      items.add({'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'description': '', 'maxQuantity': 1});
     });
   }
 
@@ -764,25 +1058,29 @@ class _CreateInvoiceState extends State<CreateInvoice> {
         throw Exception('User not authenticated');
       }
 
-      // Check stock availability first
+      // Validate stock availability for all items
       for (var item in items) {
-        final itemName = item['name'] as String;
+        final itemSku = item['sku'] as String;
         final requiredQuantity = item['quantity'] as int;
         
-        final stockQuery = await FirebaseFirestore.instance
-            .collection('stock_items')
-            .where('userId', isEqualTo: user.uid)
-            .where('name', isEqualTo: itemName)
-            .get();
-        
-        if (stockQuery.docs.isNotEmpty) {
+        if (itemSku.isNotEmpty) {  // Only validate if SKU is provided
+          final stockQuery = await FirebaseFirestore.instance
+              .collection('stock_items')
+              .where('userId', isEqualTo: user.uid)
+              .where('sku', isEqualTo: itemSku)
+              .get();
+          
+          if (stockQuery.docs.isEmpty) {
+            throw Exception('Stock item with SKU "$itemSku" not found');
+          }
+          
           final stockDoc = stockQuery.docs.first;
           final stockData = stockDoc.data();
           final currentStock = stockData['quantity'] as int;
           
           if (currentStock < requiredQuantity) {
             throw Exception(
-              'Insufficient stock for "$itemName". Available: $currentStock, Required: $requiredQuantity'
+              'Insufficient stock for "${item['name']}". Available: $currentStock, Required: $requiredQuantity'
             );
           }
         }
@@ -826,28 +1124,30 @@ class _CreateInvoiceState extends State<CreateInvoice> {
 
       // Reduce stock quantities for items that exist in stock
       for (var item in items) {
-        final itemName = item['name'] as String;
+        final itemSku = item['sku'] as String;
         final soldQuantity = item['quantity'] as int;
         
-        final stockQuery = await FirebaseFirestore.instance
-            .collection('stock_items')
-            .where('userId', isEqualTo: user.uid)
-            .where('name', isEqualTo: itemName)
-            .get();
-        
-        if (stockQuery.docs.isNotEmpty) {
-          final stockDoc = stockQuery.docs.first;
-          final stockData = stockDoc.data();
-          final currentStock = stockData['quantity'] as int;
-          final newStock = currentStock - soldQuantity;
-          
-          await FirebaseFirestore.instance
+        if (itemSku.isNotEmpty) {  // Only reduce stock if SKU is provided
+          final stockQuery = await FirebaseFirestore.instance
               .collection('stock_items')
-              .doc(stockDoc.id)
-              .update({
-            'quantity': newStock,
-            'lastUpdated': DateTime.now().toString().substring(0, 10),
-          });
+              .where('userId', isEqualTo: user.uid)
+              .where('sku', isEqualTo: itemSku)
+              .get();
+          
+          if (stockQuery.docs.isNotEmpty) {
+            final stockDoc = stockQuery.docs.first;
+            final stockData = stockDoc.data();
+            final currentStock = stockData['quantity'] as int;
+            final newStock = currentStock - soldQuantity;
+            
+            await FirebaseFirestore.instance
+                .collection('stock_items')
+                .doc(stockDoc.id)
+                .update({
+              'quantity': newStock,
+              'lastUpdated': DateTime.now().toString().substring(0, 10),
+            });
+          }
         }
       }
 
@@ -961,6 +1261,18 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                     ),
                   ),
                   const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Close dialog
+                      _shareInvoiceWhatsApp(invoice);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Share WhatsApp'),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
@@ -992,8 +1304,10 @@ class _CreateInvoiceState extends State<CreateInvoice> {
     _taxController.text = '17';
     _notesController.clear();
     setState(() {
-      items = [{'name': '', 'quantity': 1, 'price': 0.0, 'description': ''}];
+      items = [{'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'description': '', 'maxQuantity': 1}];
       _selectedPaymentTerms = '30 days';
+      _selectedShopId = null;
+      _selectedShop = null;
     });
   }
 
@@ -1046,5 +1360,71 @@ class _CreateInvoiceState extends State<CreateInvoice> {
         ],
       ),
     );
+  }
+
+  Future<void> _shareInvoiceWhatsApp(Map<String, dynamic> invoice) async {
+    try {
+      final customer = invoice['customer'];
+      final pricing = invoice['pricing'];
+      final items = invoice['items'] as List;
+      
+      String message = "📄 *INVOICE DETAILS*\n\n";
+      message += "🆔 Invoice ID: ${invoice['id']}\n";
+      message += "👤 Customer: ${customer['name']}\n";
+      message += "📅 Date: ${DateTime.parse(invoice['createdAt']).toString().substring(0, 10)}\n\n";
+      
+      message += "📦 *ITEMS:*\n";
+      for (int i = 0; i < items.length; i++) {
+        final item = items[i];
+        message += "${i + 1}. ${item['name']}\n";
+        message += "   Qty: ${item['quantity']} × PKR ${(item['price'] as double).toStringAsFixed(2)}\n";
+        message += "   Total: PKR ${((item['quantity'] as int) * (item['price'] as double)).toStringAsFixed(2)}\n\n";
+      }
+      
+      message += "💰 *PRICING:*\n";
+      message += "Subtotal: PKR ${(pricing['subtotal'] as double).toStringAsFixed(2)}\n";
+      if ((pricing['discount'] as double) > 0) {
+        message += "Discount: -PKR ${(pricing['discount'] as double).toStringAsFixed(2)}\n";
+      }
+      if ((pricing['extraDiscount'] as double) > 0) {
+        message += "Extra Discount: -PKR ${(pricing['extraDiscount'] as double).toStringAsFixed(2)}\n";
+      }
+      message += "Tax (${(pricing['taxRate'] as double).toStringAsFixed(1)}%): PKR ${(pricing['taxAmount'] as double).toStringAsFixed(2)}\n";
+      message += "*Total: PKR ${(pricing['total'] as double).toStringAsFixed(2)}*\n\n";
+      
+      message += "💳 Payment Terms: ${invoice['paymentTerms']}\n";
+      message += "✅ Status: ${invoice['status']}\n";
+      
+      if (invoice['notes'] != null && invoice['notes'].toString().isNotEmpty) {
+        message += "\n📝 Notes: ${invoice['notes']}\n";
+      }
+      
+      message += "\n---\nGenerated by Business Manager App";
+      
+      final encodedMessage = Uri.encodeComponent(message);
+      final whatsappUrl = "https://wa.me/?text=$encodedMessage";
+      
+      if (await canLaunchUrl(Uri.parse(whatsappUrl))) {
+        await launchUrl(Uri.parse(whatsappUrl), mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('WhatsApp is not installed on this device'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sharing invoice: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

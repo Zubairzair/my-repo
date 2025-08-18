@@ -41,14 +41,14 @@ class _LoginViewState extends State<LoginView> {
     return Scaffold(
       body: BlocListener<LoginBloc, LoginState>(
         listener: (context, state) {
-          if (state.status == FormzStatus.submissionFailure) {
+          if (state.status == FormzSubmissionStatus.failure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
                 backgroundColor: Colors.red,
               ),
             );
-          } else if (state.status == FormzStatus.submissionSuccess) {
+          } else if (state.status == FormzSubmissionStatus.success) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Login successful!'),
@@ -128,7 +128,7 @@ class _LoginViewState extends State<LoginView> {
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
                             ),
-                            errorText: state.status == FormzStatus.submissionFailure && 
+                            errorText: state.status == FormzSubmissionStatus.failure && 
                                      state.message.contains('email') ? state.message : null,
                           ),
                           onChanged: (value) {
@@ -176,7 +176,7 @@ class _LoginViewState extends State<LoginView> {
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
                             ),
-                            errorText: state.status == FormzStatus.submissionFailure && 
+                            errorText: state.status == FormzSubmissionStatus.failure && 
                                      state.message.contains('password') ? state.message : null,
                           ),
                           onChanged: (value) {
@@ -200,7 +200,7 @@ class _LoginViewState extends State<LoginView> {
                     // Login Button
                     BlocBuilder<LoginBloc, LoginState>(
                       builder: (context, state) {
-                        final isLoading = state.status == FormzStatus.submissionInProgress;
+                        final isLoading = state.status == FormzSubmissionStatus.inProgress;
                         
                         return SizedBox(
                           width: double.infinity,
@@ -242,7 +242,7 @@ class _LoginViewState extends State<LoginView> {
                     // Sign Up Button
                     BlocBuilder<LoginBloc, LoginState>(
                       builder: (context, state) {
-                        final isLoading = state.status == FormzStatus.submissionInProgress;
+                        final isLoading = state.status == FormzSubmissionStatus.inProgress;
                         
                         return SizedBox(
                           width: double.infinity,

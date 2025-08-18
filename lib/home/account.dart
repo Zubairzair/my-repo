@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vyapar_app/config/session_manager.dart';
+import 'package:vyapar_app/home/shops/shops_management.dart';
+import 'package:vyapar_app/home/returns/returns_management.dart';
 
 class Account extends StatefulWidget {
   const Account({super.key});
@@ -148,10 +150,44 @@ class _AccountState extends State<Account> {
       child: Column(
         children: [
           _buildOptionCard(
+            'Shop Management',
+            'Manage customer shops and companies',
+            Icons.store_outlined,
+            Colors.blue,
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ShopsManagement(),
+                ),
+              );
+            },
+          ),
+          
+          const SizedBox(height: 12),
+          
+          _buildOptionCard(
+            'Returns Management',
+            'Handle product returns and stock restoration',
+            Icons.assignment_return_outlined,
+            Colors.orange,
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ReturnsManagement(),
+                ),
+              );
+            },
+          ),
+          
+          const SizedBox(height: 12),
+          
+          _buildOptionCard(
             'Business Settings',
             'Manage your business information',
             Icons.business_outlined,
-            Colors.blue,
+            Colors.green,
             () {
               _showComingSoonDialog('Business Settings');
             },

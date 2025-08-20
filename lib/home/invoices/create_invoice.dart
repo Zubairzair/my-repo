@@ -1340,7 +1340,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
-              Text('All amounts are in Pakistani Rupees (Rs)'),
+              Text('All amounts are in Rupees (Rs)'),
               SizedBox(height: 16),
               Text(
                 'Tax Information:',

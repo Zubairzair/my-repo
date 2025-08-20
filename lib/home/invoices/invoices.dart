@@ -85,15 +85,34 @@ class _InvoicesState extends State<Invoices> {
           .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox.shrink();
+        }
+
+        if (snapshot.hasError) {
+          print('Error in stats: ${snapshot.error}');
+          return _buildEmptyStatsRow();
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return _buildEmptyStatsRow();
         }
 
         final invoices = snapshot.data!.docs;
         final totalInvoices = invoices.length;
         final totalAmount = invoices.fold<double>(0, (sum, doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return sum + (data['pricing']['total'] as double? ?? 0);
+          try {
+            final data = doc.data() as Map<String, dynamic>?;
+            if (data == null) return sum;
+            
+            final pricing = data['pricing'] as Map<String, dynamic>?;
+            if (pricing == null) return sum;
+            
+            return sum + (pricing['total'] as double? ?? 0);
+          } catch (e) {
+            print('Error processing invoice: $e');
+            return sum;
+          }
         });
         final paidInvoices = totalInvoices; // All invoices are now paid by default
 
@@ -107,6 +126,18 @@ class _InvoicesState extends State<Invoices> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildEmptyStatsRow() {
+    return Row(
+      children: [
+        _buildStatCard('Total', '0', Icons.receipt_long, Colors.blue),
+        const SizedBox(width: 12),
+        _buildStatCard('Paid', '0', Icons.check_circle, Colors.green),
+        const SizedBox(width: 12),
+        _buildStatCard('Amount', 'Rs 0', Icons.attach_money, Colors.purple),
+      ],
     );
   }
 
@@ -154,6 +185,7 @@ class _InvoicesState extends State<Invoices> {
         }
 
         if (snapshot.hasError) {
+          print('Error loading invoices: ${snapshot.error}');
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -165,6 +197,11 @@ class _InvoicesState extends State<Invoices> {
                   style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 8),
+                Text(
+                  'Please check your internet connection',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                ),
+                const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => setState(() {}),
                   child: const Text('Retry'),
@@ -204,8 +241,14 @@ class _InvoicesState extends State<Invoices> {
               return const SizedBox.shrink();
             }
             
-            final invoice = invoices[index].data() as Map<String, dynamic>;
-            return _buildInvoiceCard(invoice);
+            try {
+              final invoice = invoices[index].data() as Map<String, dynamic>?;
+              if (invoice == null) return const SizedBox.shrink();
+              return _buildInvoiceCard(invoice);
+            } catch (e) {
+              print('Error rendering invoice: $e');
+              return const SizedBox.shrink();
+            }
           },
         );
       },
@@ -253,9 +296,9 @@ class _InvoicesState extends State<Invoices> {
             ),
           ),
           const SizedBox(height: 24),
-          Text(
+          const Text(
             'No invoices yet',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
@@ -295,117 +338,136 @@ class _InvoicesState extends State<Invoices> {
   }
 
   Widget _buildInvoiceCard(Map<String, dynamic> invoice) {
-    final createdAt = DateTime.parse(invoice['createdAt']);
-    final dueDate = DateTime.parse(invoice['dueDate']);
-    
-    // All invoices are now considered "Paid" by default
-    const status = 'Paid';
-    const statusColor = Colors.green;
+    try {
+      final createdAt = DateTime.parse(invoice['createdAt'] ?? DateTime.now().toIso8601String());
+      final dueDate = DateTime.parse(invoice['dueDate'] ?? DateTime.now().toIso8601String());
+      
+      // All invoices are now considered "Paid" by default
+      const status = 'Paid';
+      const statusColor = Colors.green;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            spreadRadius: 0,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: InkWell(
-        onTap: () => _showInvoiceDetails(invoice),
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          invoice['id'],
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blueAccent,
+      // Safe access to nested fields
+      final customer = invoice['customer'] as Map<String, dynamic>? ?? {};
+      final pricing = invoice['pricing'] as Map<String, dynamic>? ?? {};
+      final total = pricing['total'] as double? ?? 0.0;
+
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              spreadRadius: 0,
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: InkWell(
+          onTap: () => _showInvoiceDetails(invoice),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            invoice['id'] ?? 'Unknown ID',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blueAccent,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          invoice['customer']['name'],
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                          const SizedBox(height: 4),
+                          Text(
+                            customer['name'] ?? 'Unknown Customer',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      status,
-                      style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 16),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildInfoItem(
-                      'Amount',
-                      'Rs ${(invoice['pricing']['total'] as double).toStringAsFixed(2)}',
-                      Icons.attach_money,
-                      Colors.green,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        status,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildInfoItem(
-                      'Created',
-                      '${createdAt.day}/${createdAt.month}/${createdAt.year}',
-                      Icons.calendar_today,
-                      Colors.blue,
+                  ],
+                ),
+                
+                const SizedBox(height: 16),
+                
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildInfoItem(
+                        'Amount',
+                        'Rs ${total.toStringAsFixed(2)}',
+                        Icons.attach_money,
+                        Colors.green,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildInfoItem(
-                      'Due',
-                      '${dueDate.day}/${dueDate.month}/${dueDate.year}',
-                      Icons.schedule,
-                      Colors.orange,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildInfoItem(
+                        'Created',
+                        '${createdAt.day}/${createdAt.month}/${createdAt.year}',
+                        Icons.calendar_today,
+                        Colors.blue,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildInfoItem(
+                        'Due',
+                        '${dueDate.day}/${dueDate.month}/${dueDate.year}',
+                        Icons.schedule,
+                        Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      print('Error building invoice card: $e');
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.red[50],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.red[200]!),
+        ),
+        child: Text('Error displaying invoice: ${e.toString()}'),
+      );
+    }
   }
 
   Widget _buildInfoItem(String label, String value, IconData icon, Color color) {
@@ -479,135 +541,142 @@ class _InvoicesState extends State<Invoices> {
   }
 
   Widget _buildInvoiceDetailsContent(Map<String, dynamic> invoice) {
-    final items = List<Map<String, dynamic>>.from(invoice['items']);
-    final pricing = invoice['pricing'];
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Invoice Details',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.close),
-            ),
-          ],
-        ),
-        
-        const SizedBox(height: 24),
-        
-        // Invoice Info
-        _buildDetailSection('Invoice Information', [
-          _buildDetailRow('Invoice ID', invoice['id']),
-          _buildDetailRow('Status', 'Paid'), // Always show as Paid
-          _buildDetailRow('Created', DateTime.parse(invoice['createdAt']).toString().substring(0, 10)),
-          _buildDetailRow('Due Date', DateTime.parse(invoice['dueDate']).toString().substring(0, 10)),
-          _buildDetailRow('Payment Terms', invoice['paymentTerms']),
-        ]),
-        
-        const SizedBox(height: 24),
-        
-        // Customer Info
-        _buildDetailSection('Customer Information', [
-          _buildDetailRow('Name', invoice['customer']['name']),
-          if (invoice['customer']['email'].isNotEmpty)
-            _buildDetailRow('Email', invoice['customer']['email']),
-          if (invoice['customer']['phone'].isNotEmpty)
-            _buildDetailRow('Phone', '+92 ${invoice['customer']['phone']}'),
-        ]),
-        
-        const SizedBox(height: 24),
-        
-        // Items
-        const Text(
-          'Items',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ...items.map((item) => _buildItemDetailCard(item)),
-        
-        const SizedBox(height: 24),
-        
-        // Pricing Summary
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
+    try {
+      final items = List<Map<String, dynamic>>.from(invoice['items'] ?? []);
+      final pricing = invoice['pricing'] as Map<String, dynamic>? ?? {};
+      final customer = invoice['customer'] as Map<String, dynamic>? ?? {};
+      
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildDetailRow('Subtotal', 'Rs ${(pricing['subtotal'] as double).toStringAsFixed(2)}'),
-              if (pricing['discount'] > 0)
-                _buildDetailRow('Item Discount', '- Rs ${(pricing['discount'] as double).toStringAsFixed(2)}'),
-              if (pricing['extraDiscount'] != null && pricing['extraDiscount'] > 0)
-                _buildDetailRow('Extra Discount', '- Rs ${(pricing['extraDiscount'] as double).toStringAsFixed(2)}'),
-              if (pricing['taxAmount'] > 0)
-                _buildDetailRow('Tax (${pricing['taxRate']}%)', 'Rs ${(pricing['taxAmount'] as double).toStringAsFixed(2)}'),
-              const Divider(),
-              _buildDetailRow(
-                'Total Amount', 
-                'Rs ${(pricing['total'] as double).toStringAsFixed(2)}',
-                isTotal: true,
+              const Text(
+                'Invoice Details',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
               ),
             ],
           ),
-        ),
-        
-        if (invoice['notes'].isNotEmpty) ...[
+          
           const SizedBox(height: 24),
-          _buildDetailSection('Notes', [
-            Text(invoice['notes']),
+          
+          // Invoice Info
+          _buildDetailSection('Invoice Information', [
+            _buildDetailRow('Invoice ID', invoice['id'] ?? 'Unknown'),
+            _buildDetailRow('Status', 'Paid'), // Always show as Paid
+            _buildDetailRow('Created', invoice['createdAt'] != null ? DateTime.parse(invoice['createdAt']).toString().substring(0, 10) : 'Unknown'),
+            _buildDetailRow('Due Date', invoice['dueDate'] != null ? DateTime.parse(invoice['dueDate']).toString().substring(0, 10) : 'Unknown'),
+            _buildDetailRow('Payment Terms', invoice['paymentTerms'] ?? 'Unknown'),
           ]),
-        ],
-        
-        const SizedBox(height: 32),
-        
-        // Action Buttons
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _updateInvoiceStatus(invoice['id'], 'Paid');
-                },
-                child: const Text('Mark as Paid'),
-              ),
+          
+          const SizedBox(height: 24),
+          
+          // Customer Info
+          _buildDetailSection('Customer Information', [
+            _buildDetailRow('Name', customer['name'] ?? 'Unknown'),
+            if ((customer['email'] ?? '').isNotEmpty)
+              _buildDetailRow('Email', customer['email']),
+            if ((customer['phone'] ?? '').isNotEmpty)
+              _buildDetailRow('Phone', '+92 ${customer['phone']}'),
+          ]),
+          
+          const SizedBox(height: 24),
+          
+          // Items
+          const Text(
+            'Items',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  // TODO: Implement share functionality
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Share feature coming soon!')),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  foregroundColor: Colors.white,
+          ),
+          const SizedBox(height: 12),
+          ...items.map((item) => _buildItemDetailCard(item)),
+          
+          const SizedBox(height: 24),
+          
+          // Pricing Summary
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                _buildDetailRow('Subtotal', 'Rs ${(pricing['subtotal'] as double? ?? 0).toStringAsFixed(2)}'),
+                if ((pricing['discount'] as double? ?? 0) > 0)
+                  _buildDetailRow('Item Discount', '- Rs ${(pricing['discount'] as double? ?? 0).toStringAsFixed(2)}'),
+                if (pricing['extraDiscount'] != null && (pricing['extraDiscount'] as double? ?? 0) > 0)
+                  _buildDetailRow('Extra Discount', '- Rs ${(pricing['extraDiscount'] as double? ?? 0).toStringAsFixed(2)}'),
+                if ((pricing['taxAmount'] as double? ?? 0) > 0)
+                  _buildDetailRow('Tax (${pricing['taxRate'] ?? 0}%)', 'Rs ${(pricing['taxAmount'] as double? ?? 0).toStringAsFixed(2)}'),
+                const Divider(),
+                _buildDetailRow(
+                  'Total Amount', 
+                  'Rs ${(pricing['total'] as double? ?? 0).toStringAsFixed(2)}',
+                  isTotal: true,
                 ),
-                child: const Text('Share'),
-              ),
+              ],
             ),
+          ),
+          
+          if ((invoice['notes'] ?? '').isNotEmpty) ...[
+            const SizedBox(height: 24),
+            _buildDetailSection('Notes', [
+              Text(invoice['notes'] ?? ''),
+            ]),
           ],
-        ),
-      ],
-    );
+          
+          const SizedBox(height: 32),
+          
+          // Action Buttons
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _updateInvoiceStatus(invoice['id'] ?? '', 'Paid');
+                  },
+                  child: const Text('Mark as Paid'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    // TODO: Implement share functionality
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Share feature coming soon!')),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Share'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    } catch (e) {
+      return Center(
+        child: Text('Error loading invoice details: ${e.toString()}'),
+      );
+    }
   }
 
   Widget _buildDetailSection(String title, List<Widget> children) {
@@ -655,54 +724,68 @@ class _InvoicesState extends State<Invoices> {
   }
 
   Widget _buildItemDetailCard(Map<String, dynamic> item) {
-    final quantity = item['quantity'] as int;
-    final price = item['price'] as double;
-    final total = quantity * price;
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[200]!),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            item['name'],
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          if (item['description'].isNotEmpty) ...[
-            const SizedBox(height: 4),
+    try {
+      final quantity = item['quantity'] as int? ?? 1;
+      final price = item['price'] as double? ?? 0.0;
+      final total = quantity * price;
+      
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[200]!),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Text(
-              item['description'],
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
+              item['name'] ?? 'Unknown Item',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          ],
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('$quantity × Rs ${price.toStringAsFixed(2)}'),
+            if ((item['description'] ?? '').isNotEmpty) ...[
+              const SizedBox(height: 4),
               Text(
-                'Rs ${total.toStringAsFixed(2)}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
+                item['description'] ?? '',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
               ),
             ],
-          ),
-        ],
-      ),
-    );
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('$quantity × Rs ${price.toStringAsFixed(2)}'),
+                Text(
+                  'Rs ${total.toStringAsFixed(2)}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.red[200]!),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text('Error displaying item: ${e.toString()}'),
+      );
+    }
   }
 
   Future<void> _updateInvoiceStatus(String invoiceId, String status) async {
+    if (invoiceId.isEmpty) return;
+    
     try {
       await FirebaseFirestore.instance
           .collection('invoices')

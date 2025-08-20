@@ -597,13 +597,17 @@ class _StockReportsState extends State<StockReports> {
 
     showDialog(
       context: context,
+      isScrollControlled: true,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
         title: const Text('Add New Stock Item'),
-        content: SizedBox(
+        content: Container(
           width: double.maxFinite,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.6,
+          ),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,

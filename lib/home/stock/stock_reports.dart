@@ -295,6 +295,33 @@ class _StockReportsState extends State<StockReports> {
             return const Center(child: CircularProgressIndicator());
           }
 
+          if (snapshot.hasError) {
+            print('Error loading stock: ${snapshot.error}');
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading stock',
+                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Please check your internet connection',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => setState(() {}),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
+
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return _buildEmptyState();
           }
@@ -304,8 +331,14 @@ class _StockReportsState extends State<StockReports> {
             padding: const EdgeInsets.all(20),
             itemCount: items.length,
             itemBuilder: (context, index) {
-              final item = items[index].data() as Map<String, dynamic>;
-              return _buildStockCard(item, items[index].id);
+              try {
+                final item = items[index].data() as Map<String, dynamic>?;
+                if (item == null) return const SizedBox.shrink();
+                return _buildStockCard(item, items[index].id);
+              } catch (e) {
+                print('Error rendering stock item: $e');
+                return const SizedBox.shrink();
+              }
             },
           );
         },

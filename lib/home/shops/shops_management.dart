@@ -268,6 +268,14 @@ class _ShopsManagementState extends State<ShopsManagement> {
   }
 
   Widget _buildShopCard(Map<String, dynamic> shop, String docId) {
+    // Safe access to shop data with defaults
+    final name = shop['name'] ?? 'Unknown Shop';
+    final businessType = shop['businessType'] ?? '';
+    final address = shop['address'] ?? 'No address provided';
+    final phone = shop['phone'] ?? '';
+    final email = shop['email'] ?? '';
+    final contactPerson = shop['contactPerson'] ?? '';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -295,21 +303,23 @@ class _ShopsManagementState extends State<ShopsManagement> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        shop['name'] ?? 'Unknown Shop',
+                        name,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        shop['businessType'] ?? 'Business',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
+                      if (businessType.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          businessType,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -339,7 +349,7 @@ class _ShopsManagementState extends State<ShopsManagement> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    shop['address'] ?? 'No address',
+                    address,
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[700],
@@ -358,7 +368,7 @@ class _ShopsManagementState extends State<ShopsManagement> {
                 Icon(Icons.phone_outlined, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 8),
                 Text(
-                  shop['phone'] ?? 'No phone',
+                  phone.isNotEmpty ? phone : 'No phone',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[700],
@@ -369,7 +379,7 @@ class _ShopsManagementState extends State<ShopsManagement> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    shop['email'] ?? 'No email',
+                    email.isNotEmpty ? email : 'No email',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[700],
@@ -381,14 +391,14 @@ class _ShopsManagementState extends State<ShopsManagement> {
               ],
             ),
             
-            if (shop['contactPerson'] != null && shop['contactPerson'].toString().isNotEmpty) ...[
+            if (contactPerson.isNotEmpty) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
                   Icon(Icons.person_outline, size: 16, color: Colors.grey[600]),
                   const SizedBox(width: 8),
                   Text(
-                    'Contact: ${shop['contactPerson']}',
+                    'Contact: $contactPerson',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[700],
@@ -413,7 +423,7 @@ class _ShopsManagementState extends State<ShopsManagement> {
                 ),
                 const SizedBox(width: 8),
                 TextButton.icon(
-                  onPressed: () => _deleteShop(docId, shop['name']),
+                  onPressed: () => _deleteShop(docId, name),
                   icon: const Icon(Icons.delete, size: 16),
                   label: const Text('Delete'),
                   style: TextButton.styleFrom(

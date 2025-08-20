@@ -103,22 +103,43 @@ class _StockReportsState extends State<StockReports> {
           .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildEmptyStatsCards();
+        }
+
+        if (snapshot.hasError) {
+          print('Error in stock stats: ${snapshot.error}');
+          return _buildEmptyStatsCards();
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return _buildEmptyStatsCards();
         }
 
         final items = snapshot.data!.docs;
         final totalItems = items.length;
         final lowStockItems = items.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return (data['quantity'] as int? ?? 0) < (data['minStock'] as int? ?? 0);
+          try {
+            final data = doc.data() as Map<String, dynamic>?;
+            if (data == null) return false;
+            return (data['quantity'] as int? ?? 0) < (data['minStock'] as int? ?? 0);
+          } catch (e) {
+            print('Error processing stock item: $e');
+            return false;
+          }
         }).length;
         
         final totalValue = items.fold<double>(0, (sum, doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final quantity = data['quantity'] as int? ?? 0;
-          final price = data['price'] as double? ?? 0;
-          return sum + (quantity * price);
+          try {
+            final data = doc.data() as Map<String, dynamic>?;
+            if (data == null) return sum;
+            final quantity = data['quantity'] as int? ?? 0;
+            final price = data['price'] as double? ?? 0;
+            return sum + (quantity * price);
+          } catch (e) {
+            print('Error processing stock value: $e');
+            return sum;
+          }
         });
 
         return Padding(

@@ -108,7 +108,7 @@ class _DashboardState extends State<Dashboard> {
                         return FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            'Total Sales: PKR ${totalAmount.toStringAsFixed(2)}',
+                            'Total Sales: Rs ${totalAmount.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: isTablet ? 20 : 18,
                               fontWeight: FontWeight.bold,

@@ -149,6 +149,7 @@ class _ShopsManagementState extends State<ShopsManagement> {
         }
 
         if (snapshot.hasError) {
+          print('Error loading shops: ${snapshot.error}');
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -160,6 +161,11 @@ class _ShopsManagementState extends State<ShopsManagement> {
                   style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 8),
+                Text(
+                  'Please check your internet connection',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                ),
+                const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => setState(() {}),
                   child: const Text('Retry'),
@@ -169,6 +175,7 @@ class _ShopsManagementState extends State<ShopsManagement> {
           );
         }
 
+        // Handle empty data case properly
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return _buildEmptyState();
         }
@@ -179,8 +186,14 @@ class _ShopsManagementState extends State<ShopsManagement> {
           padding: const EdgeInsets.all(20),
           itemCount: shops.length,
           itemBuilder: (context, index) {
-            final shop = shops[index].data() as Map<String, dynamic>;
-            return _buildShopCard(shop, shops[index].id);
+            try {
+              final shop = shops[index].data() as Map<String, dynamic>?;
+              if (shop == null) return const SizedBox.shrink();
+              return _buildShopCard(shop, shops[index].id);
+            } catch (e) {
+              print('Error rendering shop: $e');
+              return const SizedBox.shrink();
+            }
           },
         );
       },

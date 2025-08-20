@@ -257,7 +257,7 @@ class _ProfitsState extends State<Profits> {
                         Expanded(
                           child: _buildSummaryCard(
                             'Total Revenue',
-                            'PKR ${totalRevenue.toStringAsFixed(0)}',
+                            'Rs ${totalRevenue.toStringAsFixed(0)}',
                             Icons.trending_up,
                             Colors.blue,
                           ),

@@ -169,15 +169,34 @@ class _ProfitsState extends State<Profits> {
           .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildEmptyStatsCards();
+        }
+
+        if (snapshot.hasError) {
+          print('Error in profits stats: ${snapshot.error}');
+          return _buildEmptyStatsCards();
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return _buildEmptyStatsCards();
         }
 
         final invoices = snapshot.data!.docs;
         // Since all invoices are paid by default, use all invoices
         final totalRevenue = invoices.fold<double>(0, (sum, doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return sum + (data['pricing']['total'] as double? ?? 0);
+          try {
+            final data = doc.data() as Map<String, dynamic>?;
+            if (data == null) return sum;
+            
+            final pricing = data['pricing'] as Map<String, dynamic>?;
+            if (pricing == null) return sum;
+            
+            return sum + (pricing['total'] as double? ?? 0);
+          } catch (e) {
+            print('Error processing invoice revenue: $e');
+            return sum;
+          }
         });
 
         final totalCost = totalRevenue * 0.7; // Assume 70% cost ratio
@@ -187,12 +206,29 @@ class _ProfitsState extends State<Profits> {
         // Calculate this month's revenue
         final now = DateTime.now();
         final thisMonthRevenue = invoices.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final createdAt = DateTime.parse(data['createdAt']);
-          return createdAt.month == now.month && createdAt.year == now.year;
+          try {
+            final data = doc.data() as Map<String, dynamic>?;
+            if (data == null || data['createdAt'] == null) return false;
+            
+            final createdAt = DateTime.parse(data['createdAt']);
+            return createdAt.month == now.month && createdAt.year == now.year;
+          } catch (e) {
+            print('Error processing invoice date: $e');
+            return false;
+          }
         }).fold<double>(0, (sum, doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return sum + (data['pricing']['total'] as double? ?? 0);
+          try {
+            final data = doc.data() as Map<String, dynamic>?;
+            if (data == null) return sum;
+            
+            final pricing = data['pricing'] as Map<String, dynamic>?;
+            if (pricing == null) return sum;
+            
+            return sum + (pricing['total'] as double? ?? 0);
+          } catch (e) {
+            print('Error processing monthly revenue: $e');
+            return sum;
+          }
         });
 
         return Padding(

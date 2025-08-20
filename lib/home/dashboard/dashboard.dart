@@ -380,7 +380,7 @@ class _DashboardState extends State<Dashboard> {
                     Icons.add_circle_outline,
                     Colors.blueAccent,
                     () {
-                      Navigator.pushNamed(context, '/home');
+                      widget.onNavigateToTab(1); // Navigate to Invoices tab
                     },
                   ),
                 ),

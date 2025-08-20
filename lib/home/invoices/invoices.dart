@@ -103,7 +103,7 @@ class _InvoicesState extends State<Invoices> {
             const SizedBox(width: 12),
             _buildStatCard('Paid', paidInvoices.toString(), Icons.check_circle, Colors.green),
             const SizedBox(width: 12),
-            _buildStatCard('Amount', 'PKR ${totalAmount.toStringAsFixed(0)}', Icons.attach_money, Colors.purple),
+            _buildStatCard('Amount', 'Rs ${totalAmount.toStringAsFixed(0)}', Icons.attach_money, Colors.purple),
           ],
         );
       },
@@ -376,7 +376,7 @@ class _InvoicesState extends State<Invoices> {
                   Expanded(
                     child: _buildInfoItem(
                       'Amount',
-                      'PKR ${(invoice['pricing']['total'] as double).toStringAsFixed(2)}',
+                      'Rs ${(invoice['pricing']['total'] as double).toStringAsFixed(2)}',
                       Icons.attach_money,
                       Colors.green,
                     ),
@@ -549,17 +549,17 @@ class _InvoicesState extends State<Invoices> {
           ),
           child: Column(
             children: [
-              _buildDetailRow('Subtotal', 'PKR ${(pricing['subtotal'] as double).toStringAsFixed(2)}'),
+              _buildDetailRow('Subtotal', 'Rs ${(pricing['subtotal'] as double).toStringAsFixed(2)}'),
               if (pricing['discount'] > 0)
-                _buildDetailRow('Item Discount', '- PKR ${(pricing['discount'] as double).toStringAsFixed(2)}'),
+                _buildDetailRow('Item Discount', '- Rs ${(pricing['discount'] as double).toStringAsFixed(2)}'),
               if (pricing['extraDiscount'] != null && pricing['extraDiscount'] > 0)
-                _buildDetailRow('Extra Discount', '- PKR ${(pricing['extraDiscount'] as double).toStringAsFixed(2)}'),
+                _buildDetailRow('Extra Discount', '- Rs ${(pricing['extraDiscount'] as double).toStringAsFixed(2)}'),
               if (pricing['taxAmount'] > 0)
-                _buildDetailRow('Tax (${pricing['taxRate']}%)', 'PKR ${(pricing['taxAmount'] as double).toStringAsFixed(2)}'),
+                _buildDetailRow('Tax (${pricing['taxRate']}%)', 'Rs ${(pricing['taxAmount'] as double).toStringAsFixed(2)}'),
               const Divider(),
               _buildDetailRow(
                 'Total Amount', 
-                'PKR ${(pricing['total'] as double).toStringAsFixed(2)}',
+                'Rs ${(pricing['total'] as double).toStringAsFixed(2)}',
                 isTotal: true,
               ),
             ],
@@ -690,9 +690,9 @@ class _InvoicesState extends State<Invoices> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('$quantity × PKR ${price.toStringAsFixed(2)}'),
+              Text('$quantity × Rs ${price.toStringAsFixed(2)}'),
               Text(
-                'PKR ${total.toStringAsFixed(2)}',
+                'Rs ${total.toStringAsFixed(2)}',
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ],

@@ -547,7 +547,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       Text(
-                        'SKU: ${stockItem['sku']} | Available: ${stockItem['quantity']} | PKR ${stockItem['price']}',
+                        'SKU: ${stockItem['sku']} | Available: ${stockItem['quantity']} | Rs ${stockItem['price']}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -617,7 +617,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                   ),
                   Text('SKU: ${items[index]['sku']}'),
                   Text('Available Stock: ${items[index]['maxQuantity']}'),
-                  Text('Unit Price: PKR ${price.toStringAsFixed(2)}'),
+                  Text('Unit Price: Rs ${price.toStringAsFixed(2)}'),
                   if (items[index]['description'] != null && items[index]['description'].toString().isNotEmpty)
                     Text('Description: ${items[index]['description']}'),
                 ],
@@ -690,7 +690,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                           ),
                         ),
                         Text(
-                          'PKR ${price.toStringAsFixed(2)}',
+                          'Rs ${price.toStringAsFixed(2)}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -723,7 +723,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                     ),
                   ),
                   Text(
-                    'PKR ${itemTotal.toStringAsFixed(2)}',
+                    'Rs ${itemTotal.toStringAsFixed(2)}',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.green,
@@ -770,7 +770,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                 controller: _discountController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Item Discount (PKR)',
+                  labelText: 'Item Discount (Rs)',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -785,7 +785,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                 controller: _extraDiscountController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Extra Discount (PKR)',
+                  labelText: 'Extra Discount (Rs)',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -902,17 +902,17 @@ class _CreateInvoiceState extends State<CreateInvoice> {
               ],
             ),
             const SizedBox(height: 16),
-            _buildSummaryRow('Subtotal:', 'PKR ${subtotal.toStringAsFixed(2)}', false),
+            _buildSummaryRow('Subtotal:', 'Rs ${subtotal.toStringAsFixed(2)}', false),
             const SizedBox(height: 8),
-            _buildSummaryRow('Item Discount:', '- PKR ${discount.toStringAsFixed(2)}', false, color: Colors.red),
+            _buildSummaryRow('Item Discount:', '- Rs ${discount.toStringAsFixed(2)}', false, color: Colors.red),
             const SizedBox(height: 8),
-            _buildSummaryRow('Extra Discount:', '- PKR ${extraDiscount.toStringAsFixed(2)}', false, color: Colors.purple),
+            _buildSummaryRow('Extra Discount:', '- Rs ${extraDiscount.toStringAsFixed(2)}', false, color: Colors.purple),
             const SizedBox(height: 8),
-            _buildSummaryRow('After Discount:', 'PKR ${discountedAmount.toStringAsFixed(2)}', false),
+            _buildSummaryRow('After Discount:', 'Rs ${discountedAmount.toStringAsFixed(2)}', false),
             const SizedBox(height: 8),
-            _buildSummaryRow('Tax (${_taxController.text}%):', 'PKR ${taxAmount.toStringAsFixed(2)}', false, color: Colors.orange),
+            _buildSummaryRow('Tax (${_taxController.text}%):', 'Rs ${taxAmount.toStringAsFixed(2)}', false, color: Colors.orange),
             const Divider(thickness: 2, color: Colors.blueAccent),
-            _buildSummaryRow('Total Amount:', 'PKR ${total.toStringAsFixed(2)}', true),
+            _buildSummaryRow('Total Amount:', 'Rs ${total.toStringAsFixed(2)}', true),
           ],
         ),
       ),
@@ -1113,7 +1113,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
         'status': 'Paid', // Always set to Paid by default
         'createdAt': now.toIso8601String(),
         'dueDate': _calculateDueDate(now, _selectedPaymentTerms).toIso8601String(),
-        'currency': 'PKR',
+        'currency': 'Rs',
       };
 
       // Save to Firestore
@@ -1240,7 +1240,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                     const SizedBox(height: 4),
                     Text('Customer: ${invoice['customer']['name']}'),
                     const SizedBox(height: 4),
-                    Text('Amount: PKR ${(invoice['pricing']['total'] as double).toStringAsFixed(2)}'),
+                    Text('Amount: Rs ${(invoice['pricing']['total'] as double).toStringAsFixed(2)}'),
                     const SizedBox(height: 4),
                     Text('Status: ${invoice['status']}'),
                   ],
@@ -1340,7 +1340,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 8),
-              Text('All amounts are in Pakistani Rupees (PKR)'),
+              Text('All amounts are in Pakistani Rupees (Rs)'),
               SizedBox(height: 16),
               Text(
                 'Tax Information:',
@@ -1377,20 +1377,20 @@ class _CreateInvoiceState extends State<CreateInvoice> {
       for (int i = 0; i < items.length; i++) {
         final item = items[i];
         message += "${i + 1}. ${item['name']}\n";
-        message += "   Qty: ${item['quantity']} × PKR ${(item['price'] as double).toStringAsFixed(2)}\n";
-        message += "   Total: PKR ${((item['quantity'] as int) * (item['price'] as double)).toStringAsFixed(2)}\n\n";
+        message += "   Qty: ${item['quantity']} × Rs ${(item['price'] as double).toStringAsFixed(2)}\n";
+        message += "   Total: Rs ${((item['quantity'] as int) * (item['price'] as double)).toStringAsFixed(2)}\n\n";
       }
       
       message += "💰 *PRICING:*\n";
-      message += "Subtotal: PKR ${(pricing['subtotal'] as double).toStringAsFixed(2)}\n";
+      message += "Subtotal: Rs ${(pricing['subtotal'] as double).toStringAsFixed(2)}\n";
       if ((pricing['discount'] as double) > 0) {
-        message += "Discount: -PKR ${(pricing['discount'] as double).toStringAsFixed(2)}\n";
+        message += "Discount: -Rs ${(pricing['discount'] as double).toStringAsFixed(2)}\n";
       }
       if ((pricing['extraDiscount'] as double) > 0) {
-        message += "Extra Discount: -PKR ${(pricing['extraDiscount'] as double).toStringAsFixed(2)}\n";
+        message += "Extra Discount: -Rs ${(pricing['extraDiscount'] as double).toStringAsFixed(2)}\n";
       }
-      message += "Tax (${(pricing['taxRate'] as double).toStringAsFixed(1)}%): PKR ${(pricing['taxAmount'] as double).toStringAsFixed(2)}\n";
-      message += "*Total: PKR ${(pricing['total'] as double).toStringAsFixed(2)}*\n\n";
+      message += "Tax (${(pricing['taxRate'] as double).toStringAsFixed(1)}%): Rs ${(pricing['taxAmount'] as double).toStringAsFixed(2)}\n";
+      message += "*Total: Rs ${(pricing['total'] as double).toStringAsFixed(2)}*\n\n";
       
       message += "💳 Payment Terms: ${invoice['paymentTerms']}\n";
       message += "✅ Status: ${invoice['status']}\n";

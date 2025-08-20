@@ -217,7 +217,7 @@ class _ProfitsState extends State<Profits> {
                         Expanded(
                           child: _buildSummaryCard(
                             'Total Profit',
-                            'PKR ${totalProfit.toStringAsFixed(0)}',
+                            'Rs ${totalProfit.toStringAsFixed(0)}',
                             Icons.account_balance_wallet,
                             Colors.green,
                           ),
@@ -239,7 +239,7 @@ class _ProfitsState extends State<Profits> {
                         Expanded(
                           child: _buildSummaryCard(
                             'This Month',
-                            'PKR ${thisMonthRevenue.toStringAsFixed(0)}',
+                            'Rs ${thisMonthRevenue.toStringAsFixed(0)}',
                             Icons.calendar_today,
                             Colors.purple,
                           ),
@@ -266,7 +266,7 @@ class _ProfitsState extends State<Profits> {
                         Expanded(
                           child: _buildSummaryCard(
                             'Total Profit',
-                            'PKR ${totalProfit.toStringAsFixed(0)}',
+                            'Rs ${totalProfit.toStringAsFixed(0)}',
                             Icons.account_balance_wallet,
                             Colors.green,
                           ),
@@ -288,7 +288,7 @@ class _ProfitsState extends State<Profits> {
                         Expanded(
                           child: _buildSummaryCard(
                             'This Month',
-                            'PKR ${thisMonthRevenue.toStringAsFixed(0)}',
+                            'Rs ${thisMonthRevenue.toStringAsFixed(0)}',
                             Icons.calendar_today,
                             Colors.purple,
                           ),
@@ -310,7 +310,7 @@ class _ProfitsState extends State<Profits> {
                     const SizedBox(height: 12),
                     _buildSummaryCard(
                       'Total Profit',
-                      'PKR ${totalProfit.toStringAsFixed(0)}',
+                      'Rs ${totalProfit.toStringAsFixed(0)}',
                       Icons.account_balance_wallet,
                       Colors.green,
                     ),
@@ -324,7 +324,7 @@ class _ProfitsState extends State<Profits> {
                     const SizedBox(height: 12),
                     _buildSummaryCard(
                       'This Month',
-                      'PKR ${thisMonthRevenue.toStringAsFixed(0)}',
+                      'Rs ${thisMonthRevenue.toStringAsFixed(0)}',
                       Icons.calendar_today,
                       Colors.purple,
                     ),
@@ -349,11 +349,11 @@ class _ProfitsState extends State<Profits> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildSummaryCard('Total Revenue', 'PKR 0', Icons.trending_up, Colors.blue),
+                      child: _buildSummaryCard('Total Revenue', 'Rs 0', Icons.trending_up, Colors.blue),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildSummaryCard('Total Profit', 'PKR 0', Icons.account_balance_wallet, Colors.green),
+                      child: _buildSummaryCard('Total Profit', 'Rs 0', Icons.account_balance_wallet, Colors.green),
                     ),
                   ],
                 ),
@@ -365,7 +365,7 @@ class _ProfitsState extends State<Profits> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildSummaryCard('This Month', 'PKR 0', Icons.calendar_today, Colors.purple),
+                      child: _buildSummaryCard('This Month', 'Rs 0', Icons.calendar_today, Colors.purple),
                     ),
                   ],
                 ),
@@ -377,11 +377,11 @@ class _ProfitsState extends State<Profits> {
                 Row(
                   children: [
                     Expanded(
-                      child: _buildSummaryCard('Total Revenue', 'PKR 0', Icons.trending_up, Colors.blue),
+                      child: _buildSummaryCard('Total Revenue', 'Rs 0', Icons.trending_up, Colors.blue),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildSummaryCard('Total Profit', 'PKR 0', Icons.account_balance_wallet, Colors.green),
+                      child: _buildSummaryCard('Total Profit', 'Rs 0', Icons.account_balance_wallet, Colors.green),
                     ),
                   ],
                 ),
@@ -393,7 +393,7 @@ class _ProfitsState extends State<Profits> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _buildSummaryCard('This Month', 'PKR 0', Icons.calendar_today, Colors.purple),
+                      child: _buildSummaryCard('This Month', 'Rs 0', Icons.calendar_today, Colors.purple),
                     ),
                   ],
                 ),
@@ -402,13 +402,13 @@ class _ProfitsState extends State<Profits> {
           } else {
             return Column(
               children: [
-                _buildSummaryCard('Total Revenue', 'PKR 0', Icons.trending_up, Colors.blue),
+                _buildSummaryCard('Total Revenue', 'Rs 0', Icons.trending_up, Colors.blue),
                 const SizedBox(height: 12),
-                _buildSummaryCard('Total Profit', 'PKR 0', Icons.account_balance_wallet, Colors.green),
+                _buildSummaryCard('Total Profit', 'Rs 0', Icons.account_balance_wallet, Colors.green),
                 const SizedBox(height: 12),
                 _buildSummaryCard('Profit Margin', '0%', Icons.percent, Colors.orange),
                 const SizedBox(height: 12),
-                _buildSummaryCard('This Month', 'PKR 0', Icons.calendar_today, Colors.purple),
+                _buildSummaryCard('This Month', 'Rs 0', Icons.calendar_today, Colors.purple),
               ],
             );
           }
@@ -747,19 +747,19 @@ class _ProfitsState extends State<Profits> {
                     children: [
                       _buildProfitRow(
                         'Revenue:',
-                        'PKR ${total.toStringAsFixed(2)}',
+                        'Rs ${total.toStringAsFixed(2)}',
                         Colors.blue,
                       ),
                       const SizedBox(height: 8),
                       _buildProfitRow(
                         'Est. Cost:',
-                        'PKR ${estimatedCost.toStringAsFixed(2)}',
+                        'Rs ${estimatedCost.toStringAsFixed(2)}',
                         Colors.red,
                       ),
                       const Divider(height: 20),
                       _buildProfitRow(
                         'Est. Profit:',
-                        'PKR ${estimatedProfit.toStringAsFixed(2)}',
+                        'Rs ${estimatedProfit.toStringAsFixed(2)}',
                         Colors.green,
                         isTotal: true,
                       ),

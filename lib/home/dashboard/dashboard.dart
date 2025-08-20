@@ -211,7 +211,7 @@ class _DashboardState extends State<Dashboard> {
                 ),
                 _buildStatCard(
                   'Total Revenue',
-                  'PKR ${_formatAmount(paidAmount)}',
+                  'Rs ${_formatAmount(paidAmount)}',
                   Icons.trending_up,
                   Colors.purple,
                 ),

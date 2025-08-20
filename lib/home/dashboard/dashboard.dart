@@ -393,7 +393,7 @@ class _DashboardState extends State<Dashboard> {
                     Icons.analytics_outlined,
                     Colors.green,
                     () {
-                      Navigator.pushNamed(context, '/home');
+                      widget.onNavigateToTab(2); // Navigate to Stock Reports tab
                     },
                   ),
                 ),

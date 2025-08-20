@@ -406,7 +406,7 @@ class _DashboardState extends State<Dashboard> {
                     Icons.trending_up_outlined,
                     Colors.orange,
                     () {
-                      Navigator.pushNamed(context, '/home');
+                      widget.onNavigateToTab(3); // Navigate to Profits tab
                     },
                   ),
                 ),

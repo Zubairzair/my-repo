@@ -675,145 +675,161 @@ class _ProfitsState extends State<Profits> {
   }
 
   Widget _buildProfitCard(Map<String, dynamic> invoice) {
-    final createdAt = DateTime.parse(invoice['createdAt']);
-    final total = invoice['pricing']['total'] as double;
-    final estimatedCost = total * 0.7; // Assuming 70% cost
-    final estimatedProfit = total - estimatedCost;
-    final profitMargin = (estimatedProfit / total) * 100;
+    try {
+      final createdAt = DateTime.parse(invoice['createdAt'] ?? DateTime.now().toIso8601String());
+      final pricing = invoice['pricing'] as Map<String, dynamic>? ?? {};
+      final total = pricing['total'] as double? ?? 0.0;
+      final estimatedCost = total * 0.7; // Assuming 70% cost
+      final estimatedProfit = total - estimatedCost;
+      final profitMargin = total > 0 ? (estimatedProfit / total) * 100 : 0;
+      final customer = invoice['customer'] as Map<String, dynamic>? ?? {};
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            spreadRadius: 0,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            bool isNarrow = constraints.maxWidth < 400;
-            
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Flex(
-                  direction: isNarrow ? Axis.vertical : Axis.horizontal,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: isNarrow 
-                      ? CrossAxisAlignment.start 
-                      : CrossAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              invoice['id'],
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blueAccent,
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              spreadRadius: 0,
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              bool isNarrow = constraints.maxWidth < 400;
+              
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Flex(
+                    direction: isNarrow ? Axis.vertical : Axis.horizontal,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: isNarrow 
+                        ? CrossAxisAlignment.start 
+                        : CrossAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                invoice['id'] ?? 'Unknown ID',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blueAccent,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              invoice['customer']['name'],
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
+                            const SizedBox(height: 4),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                customer['name'] ?? 'Unknown Customer',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${createdAt.day}/${createdAt.month}/${createdAt.year}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
+                            const SizedBox(height: 4),
+                            Text(
+                              '${createdAt.day}/${createdAt.month}/${createdAt.year}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (isNarrow) const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        'PAID',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
+                          ],
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 16),
-                
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildProfitRow(
-                        'Revenue:',
-                        'Rs ${total.toStringAsFixed(2)}',
-                        Colors.blue,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildProfitRow(
-                        'Est. Cost:',
-                        'Rs ${estimatedCost.toStringAsFixed(2)}',
-                        Colors.red,
-                      ),
-                      const Divider(height: 20),
-                      _buildProfitRow(
-                        'Est. Profit:',
-                        'Rs ${estimatedProfit.toStringAsFixed(2)}',
-                        Colors.green,
-                        isTotal: true,
-                      ),
-                      const SizedBox(height: 8),
-                      _buildProfitRow(
-                        'Margin:',
-                        '${profitMargin.toStringAsFixed(1)}%',
-                        Colors.green,
+                      if (isNarrow) const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'PAID',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            );
-          },
+                  
+                  const SizedBox(height: 16),
+                  
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        _buildProfitRow(
+                          'Revenue:',
+                          'Rs ${total.toStringAsFixed(2)}',
+                          Colors.blue,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildProfitRow(
+                          'Est. Cost:',
+                          'Rs ${estimatedCost.toStringAsFixed(2)}',
+                          Colors.red,
+                        ),
+                        const Divider(height: 20),
+                        _buildProfitRow(
+                          'Est. Profit:',
+                          'Rs ${estimatedProfit.toStringAsFixed(2)}',
+                          Colors.green,
+                          isTotal: true,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildProfitRow(
+                          'Margin:',
+                          '${profitMargin.toStringAsFixed(1)}%',
+                          Colors.green,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      print('Error building profit card: $e');
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.red[50],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.red[200]!),
+        ),
+        child: Text('Error displaying profit data: ${e.toString()}'),
+      );
+    }
   }
 
   Widget _buildProfitRow(String label, String value, Color color, {bool isTotal = false}) {

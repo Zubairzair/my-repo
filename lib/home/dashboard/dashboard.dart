@@ -509,7 +509,7 @@ class _DashboardState extends State<Dashboard> {
             ),
             TextButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/home');
+                widget.onNavigateToTab(1); // Navigate to Invoices tab
               },
               child: const Text('View All'),
             ),

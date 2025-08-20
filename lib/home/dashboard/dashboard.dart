@@ -699,7 +699,7 @@ class _DashboardState extends State<Dashboard> {
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        'PKR ${(invoice['pricing']['total'] as double).toStringAsFixed(2)}',
+                        'Rs ${(invoice['pricing']['total'] as double).toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

@@ -3,7 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class Dashboard extends StatefulWidget {
-  const Dashboard({super.key});
+  final Function(int) onNavigateToTab;
+  
+  const Dashboard({super.key, required this.onNavigateToTab});
 
   @override
   State<Dashboard> createState() => _DashboardState();

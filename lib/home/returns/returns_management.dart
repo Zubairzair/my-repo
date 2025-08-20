@@ -162,6 +162,7 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
         }
 
         if (snapshot.hasError) {
+          print('Error loading returns: ${snapshot.error}');
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -173,6 +174,11 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
                   style: TextStyle(fontSize: 18, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 8),
+                Text(
+                  'Please check your internet connection',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                ),
+                const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => setState(() {}),
                   child: const Text('Retry'),
@@ -182,6 +188,7 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
           );
         }
 
+        // Handle empty data case properly
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return _buildEmptyState();
         }
@@ -192,8 +199,14 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
           padding: const EdgeInsets.all(20),
           itemCount: returns.length,
           itemBuilder: (context, index) {
-            final returnItem = returns[index].data() as Map<String, dynamic>;
-            return _buildReturnCard(returnItem, returns[index].id);
+            try {
+              final returnItem = returns[index].data() as Map<String, dynamic>?;
+              if (returnItem == null) return const SizedBox.shrink();
+              return _buildReturnCard(returnItem, returns[index].id);
+            } catch (e) {
+              print('Error rendering return: $e');
+              return const SizedBox.shrink();
+            }
           },
         );
       },

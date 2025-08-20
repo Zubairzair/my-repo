@@ -209,12 +209,12 @@ class _HomeScreenState extends State<HomeScreen> {
               child: PageView(
                 physics: const NeverScrollableScrollPhysics(),
                 controller: pageController,
-                children: const [
-                  Dashboard(),
-                  Invoices(),
-                  StockReports(),
-                  Profits(),
-                  Account()
+                children: [
+                  Dashboard(onNavigateToTab: _onItemTapped),
+                  const Invoices(),
+                  const StockReports(),
+                  const Profits(),
+                  const Account()
                 ],
               ),
             ),

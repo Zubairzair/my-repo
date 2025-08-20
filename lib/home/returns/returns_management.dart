@@ -85,24 +85,46 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
           .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox.shrink();
+        }
+
+        if (snapshot.hasError) {
+          print('Error in stats: ${snapshot.error}');
+          return _buildEmptyStatsRow();
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return _buildEmptyStatsRow();
         }
 
         final returns = snapshot.data!.docs;
         final totalReturns = returns.length;
         final todayReturns = returns.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final returnDate = DateTime.parse(data['createdAt']);
-          final today = DateTime.now();
-          return returnDate.year == today.year &&
-              returnDate.month == today.month &&
-              returnDate.day == today.day;
+          try {
+            final data = doc.data() as Map<String, dynamic>?;
+            if (data == null || data['createdAt'] == null) return false;
+            
+            final returnDate = DateTime.parse(data['createdAt']);
+            final today = DateTime.now();
+            return returnDate.year == today.year &&
+                returnDate.month == today.month &&
+                returnDate.day == today.day;
+          } catch (e) {
+            print('Error processing return date: $e');
+            return false;
+          }
         }).length;
         
         final totalValue = returns.fold<double>(0, (sum, doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return sum + (data['totalAmount'] as double? ?? 0);
+          try {
+            final data = doc.data() as Map<String, dynamic>?;
+            if (data == null) return sum;
+            return sum + (data['totalAmount'] as double? ?? 0);
+          } catch (e) {
+            print('Error processing return amount: $e');
+            return sum;
+          }
         });
 
         return Row(
@@ -115,6 +137,18 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildEmptyStatsRow() {
+    return Row(
+      children: [
+        _buildStatCard('Total Returns', '0', Icons.assignment_return, Colors.orange),
+        const SizedBox(width: 12),
+        _buildStatCard('Today', '0', Icons.today, Colors.blue),
+        const SizedBox(width: 12),
+        _buildStatCard('Value', 'Rs 0', Icons.attach_money, Colors.red),
+      ],
     );
   }
 

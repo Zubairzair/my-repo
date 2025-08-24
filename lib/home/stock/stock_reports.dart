@@ -649,7 +649,7 @@ class _StockReportsState extends State<StockReports> {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     skuController.text = 'SKU${timestamp.toString().substring(8)}';
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) => AlertDialog(

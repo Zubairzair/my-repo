@@ -187,7 +187,7 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
 
   Widget _buildReturnsList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: _getAllReturns(),
+      stream: _getReturnsStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -247,16 +247,15 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
     );
   }
 
-  Stream<QuerySnapshot> _getAllReturns() {
+  Stream<QuerySnapshot> _getReturnsStream() {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
-      return Stream.empty();
+      return const Stream.empty();
     }
 
     return FirebaseFirestore.instance
         .collection('returns')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 

@@ -58,17 +58,21 @@ class _AccountState extends State<Account> with AutomaticKeepAliveClientMixin {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildProfileHeader(),
-            const SizedBox(height: 20),
-            _buildAccountOptions(),
-            const SizedBox(height: 20),
-            _buildAppInfo(),
-            const SizedBox(height: 40),
-          ],
-        ),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(child: _buildProfileHeader()),
+          SliverPadding(
+            padding: const EdgeInsets.all(20),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _buildAccountOptions(),
+                const SizedBox(height: 20),
+                _buildAppInfo(),
+                const SizedBox(height: 40),
+              ]),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -208,60 +212,12 @@ class _AccountState extends State<Account> with AutomaticKeepAliveClientMixin {
           const SizedBox(height: 12),
           
           _buildOptionCard(
-            'Business Settings',
-            'Manage your business information',
-            Icons.business_outlined,
-            Colors.green,
-            () {
-              _showComingSoonDialog('Business Settings');
-            },
-          ),
-          
-          const SizedBox(height: 12),
-          
-          _buildOptionCard(
-            'Payment Methods',
-            'Manage payment options',
-            Icons.payment_outlined,
-            Colors.green,
-            () {
-              _showComingSoonDialog('Payment Methods');
-            },
-          ),
-          
-          const SizedBox(height: 12),
-          
-          _buildOptionCard(
-            'Tax Settings',
-            'Configure tax rates and policies',
-            Icons.calculate_outlined,
-            Colors.orange,
-            () {
-              _showComingSoonDialog('Tax Settings');
-            },
-          ),
-          
-          const SizedBox(height: 12),
-          
-          _buildOptionCard(
             'Backup & Sync',
-            'Secure your data with cloud backup',
-            Icons.cloud_sync_outlined,
-            Colors.purple,
+            'Your data is securely stored in Firebase',
+            Icons.cloud_done_outlined,
+            Colors.green,
             () {
-              _showComingSoonDialog('Backup & Sync');
-            },
-          ),
-          
-          const SizedBox(height: 12),
-          
-          _buildOptionCard(
-            'Export Data',
-            'Export invoices and reports',
-            Icons.file_download_outlined,
-            Colors.teal,
-            () {
-              _showComingSoonDialog('Export Data');
+              _showFirebaseBackupDialog();
             },
           ),
           
@@ -512,6 +468,27 @@ class _AccountState extends State<Account> with AutomaticKeepAliveClientMixin {
               foregroundColor: Colors.white,
             ),
             child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFirebaseBackupDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('Backup & Sync'),
+        content: const Text(
+          'Your data is already safely stored in Google Firebase. You don\'t need to back it up.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it!'),
           ),
         ],
       ),

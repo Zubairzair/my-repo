@@ -11,7 +11,12 @@ class CreateInvoice extends StatefulWidget {
   State<CreateInvoice> createState() => _CreateInvoiceState();
 }
 
-class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserver {
+class _CreateInvoiceState extends State<CreateInvoice> 
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
+  
+  @override
+  bool get wantKeepAlive => true;
+
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _customerController;
   late final TextEditingController _customerEmailController;
@@ -86,20 +91,42 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
       final stockSnapshot = await FirebaseFirestore.instance
           .collection('stock_items')
           .where('userId', isEqualTo: userId)
-          .where('quantity', isGreaterThan: 0) // Only show items in stock
           .get();
 
       if (!_isDisposed && mounted) {
         setState(() {
-          _stockItems = stockSnapshot.docs.map((doc) {
-            final data = doc.data();
-            data['docId'] = doc.id;
-            return data;
-          }).toList();
+          // Filter items with quantity > 0 in code instead of Firestore query
+          _stockItems = stockSnapshot.docs
+              .map((doc) {
+                final data = doc.data();
+                data['docId'] = doc.id;
+                return data;
+              })
+              .where((item) => (item['quantity'] ?? 0) > 0)
+              .toList();
         });
+        
+        // Show helpful message if no stock items
+        if (_stockItems.isEmpty && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No items in stock. Add items to your inventory first.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error loading stock items: $e');
+      if (!_isDisposed && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading stock items: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -116,16 +143,33 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
           .get();
 
       if (!_isDisposed && mounted) {
-        setState(() {
-          _shops = shopsSnapshot.docs.map((doc) {
+        // Process data in background to avoid blocking main thread
+        final processedShops = await Future.microtask(() {
+          return shopsSnapshot.docs.map((doc) {
             final data = doc.data();
             data['docId'] = doc.id;
             return data;
           }).toList();
         });
+
+        _safeSetState(() {
+          _shops = processedShops;
+        });
       }
     } catch (e) {
       debugPrint('Error loading shops: $e');
+      if (!_isDisposed && mounted) {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error loading shops: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        });
+      }
     }
   }
 
@@ -157,6 +201,7 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -181,46 +226,51 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
         child: Column(
           children: [
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildModernSectionCard(
-                      'Customer Information',
-                      Icons.person_outline,
-                      _buildCustomerSection(),
+              child: CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.all(16),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        _buildModernSectionCard(
+                          'Customer Information',
+                          Icons.person_outline,
+                          _buildCustomerSection(),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        _buildModernSectionCard(
+                          'Invoice Items',
+                          Icons.receipt_long_outlined,
+                          _buildItemsSection(),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        _buildModernSectionCard(
+                          'Pricing & Terms',
+                          Icons.calculate_outlined,
+                          _buildPricingSection(),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        _buildModernSectionCard(
+                          'Additional Notes',
+                          Icons.note_outlined,
+                          _buildNotesSection(),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        _buildSummaryCard(),
+
+                        const SizedBox(height: 100), // Extra space for bottom action bar
+                      ]),
                     ),
-
-                    const SizedBox(height: 16),
-
-                    _buildModernSectionCard(
-                      'Invoice Items',
-                      Icons.receipt_long_outlined,
-                      _buildItemsSection(),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _buildModernSectionCard(
-                      'Pricing & Terms',
-                      Icons.calculate_outlined,
-                      _buildPricingSection(),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _buildModernSectionCard(
-                      'Additional Notes',
-                      Icons.note_outlined,
-                      _buildNotesSection(),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    _buildSummaryCard(),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
 
@@ -296,7 +346,9 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
             ),
             prefixIcon: const Icon(Icons.store, color: Colors.blueAccent),
             helperText: 'Choose from your saved shops or add a new one',
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
           ),
+          isExpanded: true,
           items: [
             const DropdownMenuItem<String>(
               value: null,
@@ -305,21 +357,34 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
             ..._shops.map((shop) {
               return DropdownMenuItem<String>(
                 value: shop['docId'],
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      shop['name'],
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Text(
-                      shop['address'] ?? '',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          shop['name'] ?? 'Unnamed Shop',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
-                    ),
-                  ],
+                      if (shop['address'] != null && shop['address'].toString().isNotEmpty)
+                        Flexible(
+                          child: Text(
+                            shop['address'],
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               );
             }).toList(),
@@ -409,6 +474,7 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
         ] else ...[
           // Display selected shop details (read-only)
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.green.withOpacity(0.05),
@@ -435,18 +501,29 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
                 Text(
                   'Name: ${_selectedShop!['name']}',
                   style: const TextStyle(fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
                 ),
                 if (_selectedShop!['address'] != null) ...[
                   const SizedBox(height: 4),
-                  Text('Address: ${_selectedShop!['address']}'),
+                  Text(
+                    'Address: ${_selectedShop!['address']}',
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
                 ],
                 if (_selectedShop!['phone'] != null) ...[
                   const SizedBox(height: 4),
-                  Text('Phone: ${_selectedShop!['phone']}'),
+                  Text(
+                    'Phone: ${_selectedShop!['phone']}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
                 if (_selectedShop!['email'] != null) ...[
                   const SizedBox(height: 4),
-                  Text('Email: ${_selectedShop!['email']}'),
+                  Text(
+                    'Email: ${_selectedShop!['email']}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ],
             ),
@@ -457,19 +534,22 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
 
         // Quick Action to Add New Shop
         if (_shops.isEmpty || _selectedShopId == null)
-          TextButton.icon(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Go to Account > Shop Management to add new shops'),
-                  backgroundColor: Colors.blue,
-                ),
-              );
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Add New Shop'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.blueAccent,
+          SizedBox(
+            width: double.infinity,
+            child: TextButton.icon(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Go to Account > Shop Management to add new shops'),
+                    backgroundColor: Colors.blue,
+                  ),
+                );
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Add New Shop'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.blueAccent,
+              ),
             ),
           ),
       ],
@@ -564,34 +644,54 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               prefixIcon: const Icon(Icons.inventory_2, size: 20),
-            ),
-            items: [
-              const DropdownMenuItem<String>(
-                value: null,
-                child: Text('Choose an item...'),
+              helperText: _stockItems.isEmpty ? 'No items in stock - Add items first' : 'Choose from available stock',
+              helperStyle: TextStyle(
+                color: _stockItems.isEmpty ? Colors.orange : Colors.grey[600],
               ),
-              ..._stockItems.map((stockItem) {
-                return DropdownMenuItem<String>(
-                  value: stockItem['sku'],
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        stockItem['name'],
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      Text(
-                        'SKU: ${stockItem['sku']} | Available: ${stockItem['quantity']} | Rs ${stockItem['price']}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
+            ),
+            isExpanded: true,
+            items: _stockItems.isEmpty 
+              ? [
+                  const DropdownMenuItem<String>(
+                    value: null,
+                    child: Text('No items available in stock'),
+                  ),
+                ]
+              : [
+                  const DropdownMenuItem<String>(
+                    value: null,
+                    child: Text('Choose an item...'),
+                  ),
+                  ..._stockItems.map((stockItem) {
+                    return DropdownMenuItem<String>(
+                      value: stockItem['sku'],
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              stockItem['name'] ?? 'Unnamed Item',
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                            Text(
+                              'SKU: ${stockItem['sku']} | Stock: ${stockItem['quantity']} | Rs ${stockItem['price']}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ],
+                    );
+                  }).toList(),
+                ],
             onChanged: (value) {
               if (value != null && !_isDisposed && mounted) {
                 final stockItem = _stockItems.firstWhere((item) => item['sku'] == value);
@@ -622,6 +722,7 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
 
             // Selected Item Details Display
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.blue.withOpacity(0.05),
@@ -648,12 +749,26 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
                   Text(
                     'Name: ${items[index]['name']}',
                     style: const TextStyle(fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  Text('SKU: ${items[index]['sku']}'),
-                  Text('Available Stock: ${items[index]['maxQuantity']}'),
-                  Text('Unit Price: Rs ${price.toStringAsFixed(2)}'),
+                  Text(
+                    'SKU: ${items[index]['sku']}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Available Stock: ${items[index]['maxQuantity']}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Unit Price: Rs ${price.toStringAsFixed(2)}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   if (items[index]['description'] != null && items[index]['description'].toString().isNotEmpty)
-                    Text('Description: ${items[index]['description']}'),
+                    Text(
+                      'Description: ${items[index]['description']}',
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
                 ],
               ),
             ),
@@ -731,6 +846,7 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -743,6 +859,7 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
 
             // Item Total
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.green.withOpacity(0.1),
@@ -772,6 +889,7 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
           ] else ...[
             const SizedBox(height: 12),
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.orange.withOpacity(0.1),
@@ -865,17 +983,26 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
             Expanded(
               child: DropdownButtonFormField<String>(
                 value: _selectedPaymentTerms,
+                isExpanded: true,
                 decoration: InputDecoration(
                   labelText: 'Payment Terms',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   prefixIcon: const Icon(Icons.schedule_outlined, color: Colors.blue),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
                 items: _paymentTermsOptions.map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
-                    child: Text(value),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Text(
+                        value,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
                   );
                 }).toList(),
                 onChanged: (String? newValue) {
@@ -1153,6 +1280,13 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
           'email': _customerEmailController.text,
           'phone': _customerPhoneController.text,
         },
+        'shop': _selectedShop != null ? {
+          'id': _selectedShopId,
+          'name': _selectedShop!['name'],
+          'address': _selectedShop!['address'],
+          'phone': _selectedShop!['phone'],
+          'email': _selectedShop!['email'],
+        } : null,
         'items': List.from(items),
         'pricing': {
           'subtotal': subtotal,
@@ -1295,6 +1429,13 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
                     Text('Invoice ID: ${invoice['id']}'),
                     const SizedBox(height: 4),
                     Text('Customer: ${invoice['customer']['name']}'),
+                    if (invoice['shop'] != null) ...[
+                      const SizedBox(height: 4),
+                      Text('Shop: ${invoice['shop']['name']}'),
+                      Text('Address: ${invoice['shop']['address']}'),
+                      Text('Phone: ${invoice['shop']['phone']}'),
+                      Text('Email: ${invoice['shop']['email']}'),
+                    ],
                     const SizedBox(height: 4),
                     Text('Amount: Rs ${(invoice['pricing']['total'] as double).toStringAsFixed(2)}'),
                     const SizedBox(height: 4),
@@ -1425,10 +1566,17 @@ class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserv
       final customer = invoice['customer'];
       final pricing = invoice['pricing'];
       final items = invoice['items'] as List;
+      final shop = invoice['shop'];
 
       String message = "📄 *INVOICE DETAILS*\n\n";
       message += "🆔 Invoice ID: ${invoice['id']}\n";
       message += "👤 Customer: ${customer['name']}\n";
+      if (shop != null) {
+        message += "🏢 Shop: ${shop['name']}\n";
+        message += "📍 Address: ${shop['address']}\n";
+        message += "📞 Phone: ${shop['phone']}\n";
+        message += "📧 Email: ${shop['email']}\n";
+      }
       message += "📅 Date: ${DateTime.parse(invoice['createdAt']).toString().substring(0, 10)}\n\n";
 
       message += "📦 *ITEMS:*\n";

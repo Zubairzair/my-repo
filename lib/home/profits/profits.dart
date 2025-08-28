@@ -377,7 +377,6 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
       stream: FirebaseFirestore.instance
           .collection('invoices')
           .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-          .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -390,47 +389,62 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
 
         final invoices = snapshot.data!.docs;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Profit Details',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+        return Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Flexible(
+                      child: Text(
+                        'Profit Details',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                  TextButton.icon(
-                    onPressed: _showProfitAnalysis,
-                    icon: const Icon(Icons.analytics_outlined, size: 18),
-                    label: const Text('Analysis'),
-                  ),
-                ],
-              ),
-            ),
-            
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.only(
-                  left: 20,
-                  right: 20,
-                  bottom: 20,
+                    Flexible(
+                      child: TextButton.icon(
+                        onPressed: () {
+                          // Add export functionality here
+                        },
+                        icon: const Icon(Icons.download, size: 16),
+                        label: const Text(
+                          'Export',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.blueAccent,
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                itemCount: invoices.length,
-                itemBuilder: (context, index) {
-                  final invoice = invoices[index].data() as Map<String, dynamic>;
-                  return _buildProfitCard(invoice);
-                },
               ),
-            ),
-          ],
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.only(
+                    left: 20,
+                    right: 20,
+                    bottom: 20,
+                  ),
+                  itemCount: invoices.length,
+                  itemBuilder: (context, index) {
+                    final invoice = invoices[index].data() as Map<String, dynamic>;
+                    return _buildProfitCard(invoice);
+                  },
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -439,40 +453,45 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(40),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.grey[100],
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.trending_up_outlined,
-                size: 64,
+                size: 48,
                 color: Colors.grey[400],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             const Text(
               'No profit data yet',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Complete some paid invoices to see your profit analysis',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
+            const SizedBox(height: 6),
+            Flexible(
+              child: Text(
+                'Complete some paid invoices to see your profit analysis',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),

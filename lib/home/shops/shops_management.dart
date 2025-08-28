@@ -9,9 +9,32 @@ class ShopsManagement extends StatefulWidget {
   State<ShopsManagement> createState() => _ShopsManagementState();
 }
 
-class _ShopsManagementState extends State<ShopsManagement> {
+class _ShopsManagementState extends State<ShopsManagement> with AutomaticKeepAliveClientMixin {
+  bool _isDisposed = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
+  void _safeSetState(VoidCallback fn) {
+    if (!_isDisposed && mounted) {
+      setState(fn);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+    
+    if (_isDisposed) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -32,6 +55,7 @@ class _ShopsManagementState extends State<ShopsManagement> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: "shops_fab",
         onPressed: _showAddShopDialog,
         backgroundColor: Colors.blueAccent,
         foregroundColor: Colors.white,
@@ -85,22 +109,36 @@ class _ShopsManagementState extends State<ShopsManagement> {
           .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const SizedBox.shrink();
         }
 
-        final shops = snapshot.data!.docs;
-        final totalShops = shops.length;
+        if (snapshot.hasError) {
+          debugPrint('Shops stats error: ${snapshot.error}');
+          return const SizedBox.shrink();
+        }
 
-        return Row(
-          children: [
-            _buildStatCard('Total Shops', totalShops.toString(), Icons.store, Colors.blue),
-            const SizedBox(width: 12),
-            _buildStatCard('Active', totalShops.toString(), Icons.verified, Colors.green),
-            const SizedBox(width: 12),
-            _buildStatCard('This Month', '0', Icons.trending_up, Colors.purple),
-          ],
-        );
+        if (!snapshot.hasData || snapshot.data == null) {
+          return const SizedBox.shrink();
+        }
+
+        try {
+          final shops = snapshot.data!.docs;
+          final totalShops = shops.length;
+
+          return Row(
+            children: [
+              _buildStatCard('Total Shops', totalShops.toString(), Icons.store, Colors.blue),
+              const SizedBox(width: 12),
+              _buildStatCard('Active', totalShops.toString(), Icons.verified, Colors.green),
+              const SizedBox(width: 12),
+              _buildStatCard('This Month', '0', Icons.trending_up, Colors.purple),
+            ],
+          );
+        } catch (e) {
+          debugPrint('Error building shops stats: $e');
+          return const SizedBox.shrink();
+        }
       },
     );
   }
@@ -149,7 +187,7 @@ class _ShopsManagementState extends State<ShopsManagement> {
         }
 
         if (snapshot.hasError) {
-          print('Error loading shops: ${snapshot.error}');
+          debugPrint('Error loading shops: ${snapshot.error}');
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -162,12 +200,17 @@ class _ShopsManagementState extends State<ShopsManagement> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Please check your internet connection',
+                  'Please check your internet connection and try again',
                   style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => setState(() {}),
+                  onPressed: () => _safeSetState(() {}),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
                   child: const Text('Retry'),
                 ),
               ],
@@ -180,22 +223,44 @@ class _ShopsManagementState extends State<ShopsManagement> {
           return _buildEmptyState();
         }
 
-        final shops = snapshot.data!.docs;
+        try {
+          final shops = snapshot.data!.docs;
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(20),
-          itemCount: shops.length,
-          itemBuilder: (context, index) {
-            try {
-              final shop = shops[index].data() as Map<String, dynamic>?;
-              if (shop == null) return const SizedBox.shrink();
-              return _buildShopCard(shop, shops[index].id);
-            } catch (e) {
-              print('Error rendering shop: $e');
-              return const SizedBox.shrink();
-            }
-          },
-        );
+          return ListView.builder(
+            padding: const EdgeInsets.all(20),
+            itemCount: shops.length,
+            itemBuilder: (context, index) {
+              try {
+                final shop = shops[index].data() as Map<String, dynamic>?;
+                if (shop == null) return const SizedBox.shrink();
+                return _buildShopCard(shop, shops[index].id);
+              } catch (e) {
+                debugPrint('Error rendering shop: $e');
+                return const SizedBox.shrink();
+              }
+            },
+          );
+        } catch (e) {
+          debugPrint('Error building shops list: $e');
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                const SizedBox(height: 16),
+                Text(
+                  'Error displaying shops',
+                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => _safeSetState(() {}),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
       },
     );
   }
@@ -206,11 +271,15 @@ class _ShopsManagementState extends State<ShopsManagement> {
       return Stream.empty();
     }
 
-    return FirebaseFirestore.instance
-        .collection('shops')
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    try {
+      return FirebaseFirestore.instance
+          .collection('shops')
+          .where('userId', isEqualTo: userId)
+          .snapshots();
+    } catch (e) {
+      debugPrint('Error creating shops stream: $e');
+      return Stream.empty();
+    }
   }
 
   Widget _buildEmptyState() {

@@ -10,12 +10,34 @@ class Invoices extends StatefulWidget {
   State<Invoices> createState() => _InvoicesState();
 }
 
-class _InvoicesState extends State<Invoices> {
+class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin {
   final int _limit = 20;
   DocumentSnapshot? _lastDocument;
+  bool _isDisposed = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
+  void _safeSetState(VoidCallback fn) {
+    if (!_isDisposed && mounted) {
+      setState(fn);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+    
+    if (_isDisposed) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: Column(
@@ -27,6 +49,7 @@ class _InvoicesState extends State<Invoices> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: "invoices_fab",
         onPressed: () {
           Navigator.push(
             context,
@@ -203,7 +226,7 @@ class _InvoicesState extends State<Invoices> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => setState(() {}),
+                  onPressed: () => _safeSetState(() {}),
                   child: const Text('Retry'),
                 ),
               ],
@@ -264,7 +287,6 @@ class _InvoicesState extends State<Invoices> {
     Query query = FirebaseFirestore.instance
         .collection('invoices')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .limit(_limit);
 
     return query.snapshots();
@@ -273,7 +295,7 @@ class _InvoicesState extends State<Invoices> {
   void _loadMoreInvoices() {
     // This is a simple implementation. For proper pagination, 
     // you would need to implement startAfterDocument functionality
-    setState(() {
+    _safeSetState(() {
       // Refresh the stream to load more
     });
   }
@@ -323,15 +345,15 @@ class _InvoicesState extends State<Invoices> {
             },
             icon: const Icon(Icons.add),
             label: const Text('Create Invoice'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
+          ),
         ],
       ),
     );
@@ -456,7 +478,6 @@ class _InvoicesState extends State<Invoices> {
         ),
       );
     } catch (e) {
-      print('Error building invoice card: $e');
       return Container(
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(20),

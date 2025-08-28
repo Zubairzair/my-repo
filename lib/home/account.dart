@@ -11,10 +11,14 @@ class Account extends StatefulWidget {
   State<Account> createState() => _AccountState();
 }
 
-class _AccountState extends State<Account> {
+class _AccountState extends State<Account> with AutomaticKeepAliveClientMixin {
   User? _currentUser;
   String _firstName = '';
   String _email = '';
+  bool _isDisposed = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -22,16 +26,36 @@ class _AccountState extends State<Account> {
     _loadUserData();
   }
 
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
+  void _safeSetState(VoidCallback fn) {
+    if (!_isDisposed && mounted) {
+      setState(fn);
+    }
+  }
+
   Future<void> _loadUserData() async {
+    if (_isDisposed) return;
+    
     _currentUser = FirebaseAuth.instance.currentUser;
     _firstName = await SessionManager().getFirstName() ?? '';
     _email = await SessionManager().getEmail() ?? '';
     
-    setState(() {});
+    _safeSetState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+    
+    if (_isDisposed) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SingleChildScrollView(

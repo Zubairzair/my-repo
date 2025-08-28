@@ -15,32 +15,73 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final PageController pageController = PageController(initialPage: 0);
+class _HomeScreenState extends State<HomeScreen>
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   int _selectedIndex = 0;
   String _userName = '';
+  bool _isDisposed = false;
+
+  // Create unique global keys for each tab to prevent conflicts
+  final GlobalKey _dashboardKey = GlobalKey();
+  final GlobalKey _invoicesKey = GlobalKey();
+  final GlobalKey _stockKey = GlobalKey();
+  final GlobalKey _profitsKey = GlobalKey();
+  final GlobalKey _accountKey = GlobalKey();
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadUserName();
   }
 
   @override
   void dispose() {
-    pageController.dispose();
+    _isDisposed = true;
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed && !_isDisposed) {
+      _safeSetState(() {
+        _loadUserName();
+      });
+    }
+  }
+
+  void _safeSetState(VoidCallback fn) {
+    if (!_isDisposed && mounted) {
+      setState(fn);
+    }
+  }
+
   Future<void> _loadUserName() async {
-    final firstName = await SessionManager().getFirstName();
-    final user = FirebaseAuth.instance.currentUser;
-    setState(() {
-      _userName = firstName ?? user?.displayName ?? user?.email?.split('@')[0] ?? 'User';
-    });
+    if (_isDisposed) return;
+
+    try {
+      final firstName = await SessionManager().getFirstName();
+      final user = FirebaseAuth.instance.currentUser;
+
+      _safeSetState(() {
+        _userName = firstName ?? user?.displayName ?? user?.email?.split('@')[0] ?? 'User';
+      });
+    } catch (e) {
+      debugPrint('Error loading user name: $e');
+      _safeSetState(() {
+        _userName = 'User';
+      });
+    }
   }
 
   Future<void> _handleLogout() async {
+    if (_isDisposed || !mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -59,12 +100,13 @@ class _HomeScreenState extends State<HomeScreen> {
               try {
                 await FirebaseAuth.instance.signOut();
                 await SessionManager().clearAll();
-                if (mounted) {
+                if (mounted && !_isDisposed) {
                   Navigator.pop(context); // Close dialog
                   Navigator.pushReplacementNamed(context, '/login');
                 }
               } catch (e) {
-                if (mounted) {
+                debugPrint('Logout error: $e');
+                if (mounted && !_isDisposed) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -86,8 +128,39 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildTabContent(int index) {
+    switch (index) {
+      case 0:
+        return Dashboard(
+          key: _dashboardKey,
+          onNavigateToTab: _onItemTapped,
+        );
+      case 1:
+        return Invoices(key: _invoicesKey);
+      case 2:
+        return StockReports(key: _stockKey);
+      case 3:
+        return Profits(key: _profitsKey);
+      case 4:
+        return Account(key: _accountKey);
+      default:
+        return Dashboard(
+          key: _dashboardKey,
+          onNavigateToTab: _onItemTapped,
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
+    if (_isDisposed) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -113,111 +186,26 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
           ],
         ),
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Colors.blue[600],
         foregroundColor: Colors.white,
         elevation: 0,
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blueAccent, Colors.blue],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Notifications feature coming soon!'),
-                ),
-              );
-            },
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) {
-              switch (value) {
-                case 'logout':
-                  _handleLogout();
-                  break;
-                case 'profile':
-                  Navigator.pushNamed(context, '/profile');
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'profile',
-                child: Row(
-                  children: [
-                    Icon(Icons.person_outline, color: Colors.black54),
-                    SizedBox(width: 12),
-                    Text('Profile'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, color: Colors.red),
-                    SizedBox(width: 12),
-                    Text('Logout', style: TextStyle(color: Colors.red)),
-                  ],
-                ),
-              ),
-            ],
+            icon: const Icon(Icons.logout),
+            onPressed: _handleLogout,
+            tooltip: 'Logout',
           ),
         ],
       ),
       body: SafeArea(
-        child: Column(
+        child: IndexedStack(
+          index: _selectedIndex,
           children: [
-            // Enhanced Navigation Indicator
-            Container(
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 4,
-                  ),
-                ],
-              ),
-              child: Row(
-                children: List.generate(5, (index) {
-                  return Expanded(
-                    child: Container(
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: _selectedIndex == index 
-                            ? Colors.blueAccent 
-                            : Colors.transparent,
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ),
-            
-            // Page Content
-            Expanded(
-              child: PageView(
-                physics: const NeverScrollableScrollPhysics(),
-                controller: pageController,
-                children: [
-                  Dashboard(onNavigateToTab: _onItemTapped),
-                  const Invoices(),
-                  const StockReports(),
-                  const Profits(),
-                  const Account()
-                ],
-              ),
-            ),
+            _buildTabContent(0),
+            _buildTabContent(1),
+            _buildTabContent(2),
+            _buildTabContent(3),
+            _buildTabContent(4),
           ],
         ),
       ),
@@ -226,88 +214,57 @@ class _HomeScreenState extends State<HomeScreen> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              spreadRadius: 0,
-              blurRadius: 10,
-              offset: const Offset(0, -4),
+              color: Colors.grey.withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, -3),
             ),
           ],
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: MediaQuery.of(context).size.width * 0.02, 
-              vertical: 8
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: Colors.blue[600],
+          unselectedItemColor: Colors.grey[600],
+          backgroundColor: Colors.white,
+          elevation: 0,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard),
+              label: 'Dashboard',
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _buildNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'Dashboard'),
-                _buildNavItem(1, Icons.receipt_long_outlined, Icons.receipt_long, 'Invoices'),
-                _buildNavItem(2, Icons.inventory_2_outlined, Icons.inventory_2, 'Stock'),
-                _buildNavItem(3, Icons.trending_up_outlined, Icons.trending_up, 'Profits'),
-                _buildNavItem(4, Icons.person_outline_rounded, Icons.person, 'Account'),
-              ],
+            BottomNavigationBarItem(
+              icon: Icon(Icons.receipt_long),
+              label: 'Invoices',
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData outlinedIcon, IconData filledIcon, String label) {
-    final isSelected = _selectedIndex == index;
-    
-    return Expanded(
-      child: InkWell(
-        onTap: () => _onItemTapped(index),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isSelected 
-                      ? Colors.blueAccent.withOpacity(0.1) 
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  isSelected ? filledIcon : outlinedIcon,
-                  color: isSelected ? Colors.blueAccent : Colors.black54,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(height: 4),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    color: isSelected ? Colors.blueAccent : Colors.black54,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                ),
-              ),
-            ],
-          ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.inventory),
+              label: 'Stock',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.trending_up),
+              label: 'Profits',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.account_circle),
+              label: 'Account',
+            ),
+          ],
         ),
       ),
     );
   }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-      pageController.jumpToPage(index);
-    });
+    if (_isDisposed || !mounted || index == _selectedIndex) return;
+
+    try {
+      _safeSetState(() {
+        _selectedIndex = index;
+      });
+    } catch (e) {
+      debugPrint('Error navigating to tab $index: $e');
+    }
   }
 }

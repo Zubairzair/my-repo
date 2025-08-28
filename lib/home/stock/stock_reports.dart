@@ -26,6 +26,7 @@ class _StockReportsState extends State<StockReports> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: "stock_fab",
         onPressed: _showAddStockDialog,
         backgroundColor: Colors.blueAccent,
         foregroundColor: Colors.white,

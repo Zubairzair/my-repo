@@ -4,36 +4,106 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class Dashboard extends StatefulWidget {
   final Function(int) onNavigateToTab;
-  
+
   const Dashboard({super.key, required this.onNavigateToTab});
 
   @override
   State<Dashboard> createState() => _DashboardState();
 }
 
-class _DashboardState extends State<Dashboard> {
+class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixin {
+  bool _isDisposed = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
+  }
+
+  void _safeSetState(VoidCallback fn) {
+    if (!_isDisposed && mounted) {
+      setState(fn);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
+    if (_isDisposed) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Check if user is authenticated
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      return Scaffold(
+        backgroundColor: Colors.grey[50],
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.person_off,
+                size: 64,
+                color: Colors.grey[400],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Not authenticated',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Please log in to view dashboard',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pushReplacementNamed(context, '/login');
+                },
+                child: const Text('Go to Login'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(
-          horizontal: MediaQuery.of(context).size.width * 0.04,
-          vertical: 16,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildWelcomeSection(),
-            const SizedBox(height: 24),
-            _buildStatsGrid(),
-            const SizedBox(height: 24),
-            _buildQuickActions(),
-            const SizedBox(height: 24),
-            _buildRecentInvoices(),
-            SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
-          ],
-        ),
+      body: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.symmetric(
+              horizontal: MediaQuery.of(context).size.width * 0.04,
+              vertical: 16,
+            ),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _buildWelcomeSection(),
+                const SizedBox(height: 24),
+                _buildStatsGrid(),
+                const SizedBox(height: 24),
+                _buildQuickActions(),
+                const SizedBox(height: 24),
+                _buildRecentInvoices(),
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
+              ]),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -54,42 +124,31 @@ class _DashboardState extends State<Dashboard> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          bool isTablet = constraints.maxWidth > 600;
-          
-          return Flex(
-            direction: isTablet ? Axis.horizontal : Axis.vertical,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: isTablet 
-                ? CrossAxisAlignment.center 
-                : CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
             children: [
-              Flexible(
-                flex: isTablet ? 3 : 1,
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        'Welcome to Dashboard',
-                        style: TextStyle(
-                          fontSize: isTablet ? 28 : 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
+                    Text(
+                      'Welcome to Dashboard',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        'Manage your sales and track performance',
-                        style: TextStyle(
-                          fontSize: isTablet ? 18 : 16,
-                          color: Colors.grey[600],
-                        ),
+                    Text(
+                      'Manage your sales and track performance',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[600],
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -100,22 +159,19 @@ class _DashboardState extends State<Dashboard> {
                           .snapshots(),
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) return const SizedBox.shrink();
-                        
+
                         final invoices = snapshot.data!.docs;
                         final totalAmount = invoices.fold<double>(0, (sum, doc) {
                           final data = doc.data() as Map<String, dynamic>;
                           return sum + (data['pricing']['total'] as double? ?? 0);
                         });
 
-                        return FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            'Total Sales: Rs ${totalAmount.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: isTablet ? 20 : 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blueAccent,
-                            ),
+                        return Text(
+                          'Total Sales: Rs ${totalAmount.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blueAccent,
                           ),
                         );
                       },
@@ -123,26 +179,22 @@ class _DashboardState extends State<Dashboard> {
                   ],
                 ),
               ),
-              if (isTablet) const SizedBox(width: 20),
-              if (!isTablet) const SizedBox(height: 16),
-              Flexible(
-                flex: isTablet ? 1 : 0,
-                child: Container(
-                  padding: EdgeInsets.all(isTablet ? 20 : 16),
-                  decoration: BoxDecoration(
-                    color: Colors.blueAccent.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.dashboard,
-                    size: isTablet ? 48 : 40,
-                    color: Colors.blueAccent,
-                  ),
+              const SizedBox(width: 16),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.dashboard,
+                  size: 40,
+                  color: Colors.blueAccent,
                 ),
               ),
             ],
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -158,75 +210,91 @@ class _DashboardState extends State<Dashboard> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (!snapshot.hasData) {
+        if (snapshot.hasError) {
+          debugPrint('Dashboard stats error: ${snapshot.error}');
+          return _buildErrorStatsGrid(snapshot.error.toString());
+        }
+
+        if (!snapshot.hasData || snapshot.data == null) {
           return _buildEmptyStatsGrid();
         }
 
-        final invoices = snapshot.data!.docs;
-        final totalInvoices = invoices.length;
-        final paidInvoices = totalInvoices; // All invoices are paid now
-        
-        final totalAmount = invoices.fold<double>(0, (sum, doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return sum + (data['pricing']['total'] as double? ?? 0);
-        });
+        try {
+          final invoices = snapshot.data!.docs;
+          final totalInvoices = invoices.length;
+          final paidInvoices = totalInvoices; // All invoices are paid now
 
-        // Since all invoices are paid by default, paid amount = total amount
-        final paidAmount = totalAmount;
-
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            // Responsive design based on screen width
-            int crossAxisCount = 2;
-            double childAspectRatio = 1.2;
-            
-            if (constraints.maxWidth > 900) {
-              crossAxisCount = 4;
-              childAspectRatio = 1.3;
-            } else if (constraints.maxWidth > 600) {
-              crossAxisCount = 3;
-              childAspectRatio = 1.25;
-            } else if (constraints.maxWidth > 400) {
-              crossAxisCount = 2;
-              childAspectRatio = 1.15;
+          final totalAmount = invoices.fold<double>(0, (sum, doc) {
+            try {
+              final data = doc.data() as Map<String, dynamic>;
+              final pricing = data['pricing'] as Map<String, dynamic>?;
+              return sum + (pricing?['total'] as double? ?? 0);
+            } catch (e) {
+              debugPrint('Error processing invoice ${doc.id}: $e');
+              return sum;
             }
-            
-            return GridView.count(
-              crossAxisCount: crossAxisCount,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: childAspectRatio,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              children: [
-                _buildStatCard(
-                  'Total Invoices',
-                  totalInvoices.toString(),
-                  Icons.receipt_long,
-                  Colors.blue,
-                ),
-                _buildStatCard(
-                  'Paid Invoices',
-                  paidInvoices.toString(),
-                  Icons.check_circle,
-                  Colors.green,
-                ),
-                _buildStatCard(
-                  'Total Revenue',
-                  'Rs ${_formatAmount(paidAmount)}',
-                  Icons.trending_up,
-                  Colors.purple,
-                ),
-                _buildStatCard(
-                  'This Month',
-                  '${DateTime.now().day}/${DateTime.now().month}',
-                  Icons.calendar_today,
-                  Colors.orange,
-                ),
-              ],
-            );
-          },
-        );
+          });
+
+          // Since all invoices are paid by default, paid amount = total amount
+          final paidAmount = totalAmount;
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              // Responsive design based on screen width
+              int crossAxisCount = 2;
+              double childAspectRatio = 1.2;
+
+              if (constraints.maxWidth > 900) {
+                crossAxisCount = 4;
+                childAspectRatio = 1.3;
+              } else if (constraints.maxWidth > 600) {
+                crossAxisCount = 3;
+                childAspectRatio = 1.25;
+              } else if (constraints.maxWidth > 400) {
+                crossAxisCount = 2;
+                childAspectRatio = 1.15;
+              }
+
+              return GridView.count(
+                crossAxisCount: crossAxisCount,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                childAspectRatio: childAspectRatio,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                children: [
+                  _buildStatCard(
+                    'Total Invoices',
+                    totalInvoices.toString(),
+                    Icons.receipt_long,
+                    Colors.blue,
+                  ),
+                  _buildStatCard(
+                    'Paid Invoices',
+                    paidInvoices.toString(),
+                    Icons.check_circle,
+                    Colors.green,
+                  ),
+                  _buildStatCard(
+                    'Total Revenue',
+                    'Rs ${_formatAmount(paidAmount)}',
+                    Icons.trending_up,
+                    Colors.purple,
+                  ),
+                  _buildStatCard(
+                    'This Month',
+                    '${DateTime.now().day}/${DateTime.now().month}',
+                    Icons.calendar_today,
+                    Colors.orange,
+                  ),
+                ],
+              );
+            },
+          );
+        } catch (e) {
+          debugPrint('Error building stats grid: $e');
+          return _buildErrorStatsGrid(e.toString());
+        }
       },
     );
   }
@@ -236,7 +304,7 @@ class _DashboardState extends State<Dashboard> {
       builder: (context, constraints) {
         int crossAxisCount = 2;
         double childAspectRatio = 1.2;
-        
+
         if (constraints.maxWidth > 900) {
           crossAxisCount = 4;
           childAspectRatio = 1.3;
@@ -247,7 +315,7 @@ class _DashboardState extends State<Dashboard> {
           crossAxisCount = 2;
           childAspectRatio = 1.15;
         }
-        
+
         return GridView.count(
           crossAxisCount: crossAxisCount,
           shrinkWrap: true,
@@ -263,6 +331,53 @@ class _DashboardState extends State<Dashboard> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildErrorStatsGrid(String error) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: Colors.red,
+            size: 48,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Error loading dashboard data',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.red[700],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Please check your internet connection and try again',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.red[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => _safeSetState(() {}),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -294,7 +409,7 @@ class _DashboardState extends State<Dashboard> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           bool isSmallCard = constraints.maxWidth < 120;
-          
+
           return Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
@@ -366,59 +481,59 @@ class _DashboardState extends State<Dashboard> {
         LayoutBuilder(
           builder: (context, constraints) {
             bool isTablet = constraints.maxWidth > 600;
-            
+
             return Wrap(
               spacing: 12,
               runSpacing: 12,
               children: [
                 SizedBox(
-                  width: isTablet 
-                      ? (constraints.maxWidth - 36) / 4 
+                  width: isTablet
+                      ? (constraints.maxWidth - 36) / 4
                       : (constraints.maxWidth - 12) / 2,
                   child: _buildActionCard(
                     'Create Invoice',
                     Icons.add_circle_outline,
                     Colors.blueAccent,
-                    () {
+                        () {
                       widget.onNavigateToTab(1); // Navigate to Invoices tab
                     },
                   ),
                 ),
                 SizedBox(
-                  width: isTablet 
-                      ? (constraints.maxWidth - 36) / 4 
+                  width: isTablet
+                      ? (constraints.maxWidth - 36) / 4
                       : (constraints.maxWidth - 12) / 2,
                   child: _buildActionCard(
                     'View Reports',
                     Icons.analytics_outlined,
                     Colors.green,
-                    () {
+                        () {
                       widget.onNavigateToTab(2); // Navigate to Stock Reports tab
                     },
                   ),
                 ),
                 SizedBox(
-                  width: isTablet 
-                      ? (constraints.maxWidth - 36) / 4 
+                  width: isTablet
+                      ? (constraints.maxWidth - 36) / 4
                       : (constraints.maxWidth - 12) / 2,
                   child: _buildActionCard(
                     'Check Profits',
                     Icons.trending_up_outlined,
                     Colors.orange,
-                    () {
+                        () {
                       widget.onNavigateToTab(3); // Navigate to Profits tab
                     },
                   ),
                 ),
                 SizedBox(
-                  width: isTablet 
-                      ? (constraints.maxWidth - 36) / 4 
+                  width: isTablet
+                      ? (constraints.maxWidth - 36) / 4
                       : (constraints.maxWidth - 12) / 2,
                   child: _buildActionCard(
                     'Profile Settings',
                     Icons.person_outline,
                     Colors.purple,
-                    () {
+                        () {
                       Navigator.pushNamed(context, '/profile');
                     },
                   ),
@@ -520,7 +635,6 @@ class _DashboardState extends State<Dashboard> {
           stream: FirebaseFirestore.instance
               .collection('invoices')
               .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-              .orderBy('createdAt', descending: true)
               .limit(3)
               .snapshots(),
           builder: (context, snapshot) {
@@ -528,17 +642,33 @@ class _DashboardState extends State<Dashboard> {
               return const Center(child: CircularProgressIndicator());
             }
 
+            if (snapshot.hasError) {
+              debugPrint('Recent invoices error: ${snapshot.error}');
+              return _buildEmptyRecentInvoices();
+            }
+
             if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
               return _buildEmptyRecentInvoices();
             }
 
-            final invoices = snapshot.data!.docs;
-            return Column(
-              children: invoices.map((doc) {
-                final invoice = doc.data() as Map<String, dynamic>;
-                return _buildRecentInvoiceCard(invoice);
-              }).toList(),
-            );
+            try {
+              final invoices = snapshot.data!.docs;
+              return Column(
+                children: invoices.map((doc) {
+                  try {
+                    final invoice = doc.data() as Map<String, dynamic>?;
+                    if (invoice == null) return const SizedBox.shrink();
+                    return _buildRecentInvoiceCard(invoice);
+                  } catch (e) {
+                    debugPrint('Error rendering recent invoice: $e');
+                    return const SizedBox.shrink();
+                  }
+                }).toList(),
+              );
+            } catch (e) {
+              debugPrint('Error building recent invoices: $e');
+              return _buildEmptyRecentInvoices();
+            }
           },
         ),
       ],
@@ -593,7 +723,7 @@ class _DashboardState extends State<Dashboard> {
 
   Widget _buildRecentInvoiceCard(Map<String, dynamic> invoice) {
     final createdAt = DateTime.parse(invoice['createdAt']);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -612,7 +742,7 @@ class _DashboardState extends State<Dashboard> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           bool isNarrow = constraints.maxWidth < 350;
-          
+
           return Column(
             children: [
               Row(

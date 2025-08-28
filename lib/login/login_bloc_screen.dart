@@ -23,24 +23,56 @@ class LoginView extends StatefulWidget {
   State<LoginView> createState() => _LoginViewState();
 }
 
-class _LoginViewState extends State<LoginView> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+class _LoginViewState extends State<LoginView> with WidgetsBindingObserver {
+  late final TextEditingController _emailController;
+  late final TextEditingController _passwordController;
+  late final GlobalKey<FormState> _formKey;
   bool _obscurePassword = true;
+  bool _isDisposed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _emailController = TextEditingController();
+    _passwordController = TextEditingController();
+    _formKey = GlobalKey<FormState>();
+  }
 
   @override
   void dispose() {
+    _isDisposed = true;
+    WidgetsBinding.instance.removeObserver(this);
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Handle app lifecycle changes if needed
+  }
+
+  void _safeSetState(VoidCallback callback) {
+    if (!_isDisposed && mounted) {
+      setState(callback);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isDisposed) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       body: BlocListener<LoginBloc, LoginState>(
         listener: (context, state) {
+          if (_isDisposed || !mounted) return;
+
           if (state.status == FormzSubmissionStatus.failure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -67,7 +99,7 @@ class _LoginViewState extends State<LoginView> {
                 child: Column(
                   children: [
                     const SizedBox(height: 60),
-                    
+
                     // App Logo/Title
                     Container(
                       padding: const EdgeInsets.all(20),
@@ -88,9 +120,9 @@ class _LoginViewState extends State<LoginView> {
                         color: Colors.blueAccent,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 30),
-                    
+
                     const Text(
                       "Sales & Marketing App",
                       style: TextStyle(
@@ -99,9 +131,9 @@ class _LoginViewState extends State<LoginView> {
                         color: Colors.blueAccent,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 10),
-                    
+
                     const Text(
                       "Login to Your Account",
                       style: TextStyle(
@@ -109,13 +141,14 @@ class _LoginViewState extends State<LoginView> {
                         color: Colors.grey,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 40),
-                    
+
                     // Email Field
                     BlocBuilder<LoginBloc, LoginState>(
                       builder: (context, state) {
                         return TextFormField(
+                          key: const ValueKey('email_field'),
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
@@ -128,11 +161,13 @@ class _LoginViewState extends State<LoginView> {
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
                             ),
-                            errorText: state.status == FormzSubmissionStatus.failure && 
-                                     state.message.contains('email') ? state.message : null,
+                            errorText: state.status == FormzSubmissionStatus.failure &&
+                                state.message.contains('email') ? state.message : null,
                           ),
                           onChanged: (value) {
-                            context.read<LoginBloc>().add(LoginEmailChanged(value));
+                            if (!_isDisposed && mounted) {
+                              context.read<LoginBloc>().add(LoginEmailChanged(value));
+                            }
                           },
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -146,13 +181,14 @@ class _LoginViewState extends State<LoginView> {
                         );
                       },
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Password Field
                     BlocBuilder<LoginBloc, LoginState>(
                       builder: (context, state) {
                         return TextFormField(
+                          key: const ValueKey('password_field'),
                           controller: _passwordController,
                           obscureText: _obscurePassword,
                           decoration: InputDecoration(
@@ -164,7 +200,7 @@ class _LoginViewState extends State<LoginView> {
                                 color: Colors.grey,
                               ),
                               onPressed: () {
-                                setState(() {
+                                _safeSetState(() {
                                   _obscurePassword = !_obscurePassword;
                                 });
                               },
@@ -176,11 +212,13 @@ class _LoginViewState extends State<LoginView> {
                               borderRadius: BorderRadius.circular(12),
                               borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
                             ),
-                            errorText: state.status == FormzSubmissionStatus.failure && 
-                                     state.message.contains('password') ? state.message : null,
+                            errorText: state.status == FormzSubmissionStatus.failure &&
+                                state.message.contains('password') ? state.message : null,
                           ),
                           onChanged: (value) {
-                            context.read<LoginBloc>().add(LoginPasswordChanged(value));
+                            if (!_isDisposed && mounted) {
+                              context.read<LoginBloc>().add(LoginPasswordChanged(value));
+                            }
                           },
                           validator: (value) {
                             if (value == null || value.isEmpty) {
@@ -194,20 +232,21 @@ class _LoginViewState extends State<LoginView> {
                         );
                       },
                     ),
-                    
+
                     const SizedBox(height: 30),
-                    
+
                     // Login Button
                     BlocBuilder<LoginBloc, LoginState>(
                       builder: (context, state) {
                         final isLoading = state.status == FormzSubmissionStatus.inProgress;
-                        
+
                         return SizedBox(
                           width: double.infinity,
                           height: 55,
                           child: ElevatedButton(
-                            onPressed: isLoading ? null : () {
-                              if (_formKey.currentState!.validate()) {
+                            key: const ValueKey('login_button'),
+                            onPressed: isLoading || _isDisposed ? null : () {
+                              if (_formKey.currentState!.validate() && mounted) {
                                 context.read<LoginBloc>().add(const LoginSubmitted());
                               }
                             },
@@ -221,35 +260,36 @@ class _LoginViewState extends State<LoginView> {
                             ),
                             child: isLoading
                                 ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
                                 : const Text(
-                                    'Login',
-                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                                  ),
+                              'Login',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                            ),
                           ),
                         );
                       },
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Sign Up Button
                     BlocBuilder<LoginBloc, LoginState>(
                       builder: (context, state) {
                         final isLoading = state.status == FormzSubmissionStatus.inProgress;
-                        
+
                         return SizedBox(
                           width: double.infinity,
                           height: 55,
                           child: OutlinedButton(
-                            onPressed: isLoading ? null : () {
-                              if (_formKey.currentState!.validate()) {
+                            key: const ValueKey('signup_button'),
+                            onPressed: isLoading || _isDisposed ? null : () {
+                              if (_formKey.currentState!.validate() && mounted) {
                                 context.read<LoginBloc>().add(const LoginSignUpRequested());
                               }
                             },
@@ -271,15 +311,15 @@ class _LoginViewState extends State<LoginView> {
                         );
                       },
                     ),
-                    
+
                     const SizedBox(height: 30),
-                    
+
                     const Text(
                       "Create an account or login with your email",
                       style: TextStyle(color: Colors.grey, fontSize: 13),
                       textAlign: TextAlign.center,
                     ),
-                    
+
                     const SizedBox(height: 20),
                   ],
                 ),

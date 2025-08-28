@@ -11,21 +11,22 @@ class CreateInvoice extends StatefulWidget {
   State<CreateInvoice> createState() => _CreateInvoiceState();
 }
 
-class _CreateInvoiceState extends State<CreateInvoice> {
+class _CreateInvoiceState extends State<CreateInvoice> with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
-  final _customerController = TextEditingController();
-  final _customerEmailController = TextEditingController();
-  final _customerPhoneController = TextEditingController();
-  final _discountController = TextEditingController(text: '0');
-  final _extraDiscountController = TextEditingController(text: '0');
-  final _taxController = TextEditingController(text: '17'); // 17% GST for Pakistan
-  final _notesController = TextEditingController();
+  late final TextEditingController _customerController;
+  late final TextEditingController _customerEmailController;
+  late final TextEditingController _customerPhoneController;
+  late final TextEditingController _discountController;
+  late final TextEditingController _extraDiscountController;
+  late final TextEditingController _taxController;
+  late final TextEditingController _notesController;
 
   List<Map<String, dynamic>> items = [
     {'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'description': ''}
   ];
 
   bool _isLoading = false;
+  bool _isDisposed = false;
   String _selectedPaymentTerms = '30 days';
   String? _selectedShopId;
   Map<String, dynamic>? _selectedShop;
@@ -36,30 +37,39 @@ class _CreateInvoiceState extends State<CreateInvoice> {
   // Mathematical calculations with proper logic
   double get subtotal => items.fold(
       0.0,
-      (sum, item) =>
-          sum +
+          (sum, item) =>
+      sum +
           ((item['quantity'] ?? 1) as int) *
               ((item['price'] ?? 0.0) as double));
 
   double get discount => double.tryParse(_discountController.text) ?? 0.0;
   double get extraDiscount => double.tryParse(_extraDiscountController.text) ?? 0.0;
-  
+
   double get taxRate => (double.tryParse(_taxController.text) ?? 0.0) / 100;
-  
+
   double get totalDiscount => discount + extraDiscount;
   double get discountedAmount => subtotal - totalDiscount;
-  
+
   double get taxAmount => discountedAmount * taxRate;
-  
+
   double get total => discountedAmount + taxAmount;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _customerController = TextEditingController();
+    _customerEmailController = TextEditingController();
+    _customerPhoneController = TextEditingController();
+    _discountController = TextEditingController(text: '0');
+    _extraDiscountController = TextEditingController(text: '0');
+    _taxController = TextEditingController(text: '17');
+    _notesController = TextEditingController();
     _loadData();
   }
 
   Future<void> _loadData() async {
+    if (_isDisposed) return;
     await Future.wait([
       _loadStockItems(),
       _loadShops(),
@@ -67,6 +77,8 @@ class _CreateInvoiceState extends State<CreateInvoice> {
   }
 
   Future<void> _loadStockItems() async {
+    if (_isDisposed) return;
+
     try {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) return;
@@ -77,19 +89,23 @@ class _CreateInvoiceState extends State<CreateInvoice> {
           .where('quantity', isGreaterThan: 0) // Only show items in stock
           .get();
 
-      setState(() {
-        _stockItems = stockSnapshot.docs.map((doc) {
-          final data = doc.data();
-          data['docId'] = doc.id;
-          return data;
-        }).toList();
-      });
+      if (!_isDisposed && mounted) {
+        setState(() {
+          _stockItems = stockSnapshot.docs.map((doc) {
+            final data = doc.data();
+            data['docId'] = doc.id;
+            return data;
+          }).toList();
+        });
+      }
     } catch (e) {
-      print('Error loading stock items: $e');
+      debugPrint('Error loading stock items: $e');
     }
   }
 
   Future<void> _loadShops() async {
+    if (_isDisposed) return;
+
     try {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) return;
@@ -99,20 +115,24 @@ class _CreateInvoiceState extends State<CreateInvoice> {
           .where('userId', isEqualTo: userId)
           .get();
 
-      setState(() {
-        _shops = shopsSnapshot.docs.map((doc) {
-          final data = doc.data();
-          data['docId'] = doc.id;
-          return data;
-        }).toList();
-      });
+      if (!_isDisposed && mounted) {
+        setState(() {
+          _shops = shopsSnapshot.docs.map((doc) {
+            final data = doc.data();
+            data['docId'] = doc.id;
+            return data;
+          }).toList();
+        });
+      }
     } catch (e) {
-      print('Error loading shops: $e');
+      debugPrint('Error loading shops: $e');
     }
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
+    WidgetsBinding.instance.removeObserver(this);
     _customerController.dispose();
     _customerEmailController.dispose();
     _customerPhoneController.dispose();
@@ -121,6 +141,18 @@ class _CreateInvoiceState extends State<CreateInvoice> {
     _taxController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Handle app lifecycle changes if needed
+  }
+
+  void _safeSetState(VoidCallback callback) {
+    if (!_isDisposed && mounted) {
+      setState(callback);
+    }
   }
 
   @override
@@ -159,39 +191,39 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                       Icons.person_outline,
                       _buildCustomerSection(),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     _buildModernSectionCard(
                       'Invoice Items',
                       Icons.receipt_long_outlined,
                       _buildItemsSection(),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     _buildModernSectionCard(
                       'Pricing & Terms',
                       Icons.calculate_outlined,
                       _buildPricingSection(),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     _buildModernSectionCard(
                       'Additional Notes',
                       Icons.note_outlined,
                       _buildNotesSection(),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     _buildSummaryCard(),
                   ],
                 ),
               ),
             ),
-            
+
             _buildBottomActionBar(),
           ],
         ),
@@ -293,18 +325,20 @@ class _CreateInvoiceState extends State<CreateInvoice> {
             }).toList(),
           ],
           onChanged: (value) {
-            setState(() {
-              _selectedShopId = value;
-              _selectedShop = value != null 
-                  ? _shops.firstWhere((shop) => shop['docId'] == value)
-                  : null;
-              
-              if (_selectedShop != null) {
-                _customerController.text = _selectedShop!['name'];
-                _customerEmailController.text = _selectedShop!['email'] ?? '';
-                _customerPhoneController.text = _selectedShop!['phone'] ?? '';
-              }
-            });
+            if (!_isDisposed && mounted) {
+              _safeSetState(() {
+                _selectedShopId = value;
+                _selectedShop = value != null
+                    ? _shops.firstWhere((shop) => shop['docId'] == value)
+                    : null;
+
+                if (_selectedShop != null) {
+                  _customerController.text = _selectedShop!['name'];
+                  _customerEmailController.text = _selectedShop!['email'] ?? '';
+                  _customerPhoneController.text = _selectedShop!['phone'] ?? '';
+                }
+              });
+            }
           },
           validator: (value) {
             if (value == null) {
@@ -313,9 +347,9 @@ class _CreateInvoiceState extends State<CreateInvoice> {
             return null;
           },
         ),
-        
+
         const SizedBox(height: 16),
-        
+
         // Manual Customer Entry (if no shop selected)
         if (_selectedShopId == null) ...[
           TextFormField(
@@ -418,11 +452,11 @@ class _CreateInvoiceState extends State<CreateInvoice> {
             ),
           ),
         ],
-        
+
         const SizedBox(height: 16),
-        
+
         // Quick Action to Add New Shop
-        if (_shops.isEmpty || _selectedShopId == null) 
+        if (_shops.isEmpty || _selectedShopId == null)
           TextButton.icon(
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -517,9 +551,9 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                 ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Stock Item Selection Dropdown
           DropdownButtonFormField<String>(
             value: selectedSku.isEmpty ? null : selectedSku,
@@ -559,15 +593,15 @@ class _CreateInvoiceState extends State<CreateInvoice> {
               }).toList(),
             ],
             onChanged: (value) {
-              if (value != null) {
+              if (value != null && !_isDisposed && mounted) {
                 final stockItem = _stockItems.firstWhere((item) => item['sku'] == value);
-                setState(() {
+                _safeSetState(() {
                   items[index]['sku'] = stockItem['sku'];
                   items[index]['name'] = stockItem['name'];
                   items[index]['price'] = stockItem['price'];
                   items[index]['description'] = stockItem['description'] ?? '';
                   items[index]['maxQuantity'] = stockItem['quantity'];
-                  
+
                   // Reset quantity to 1 when item changes
                   if (items[index]['quantity'] > stockItem['quantity']) {
                     items[index]['quantity'] = 1;
@@ -582,10 +616,10 @@ class _CreateInvoiceState extends State<CreateInvoice> {
               return null;
             },
           ),
-          
+
           if (selectedSku.isNotEmpty) ...[
             const SizedBox(height: 12),
-            
+
             // Selected Item Details Display
             Container(
               padding: const EdgeInsets.all(12),
@@ -623,9 +657,9 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             // Quantity Input
             Row(
               children: [
@@ -644,11 +678,13 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                       helperText: 'Max: ${items[index]['maxQuantity']}',
                     ),
                     onChanged: (value) {
-                      setState(() {
-                        final newQty = int.tryParse(value) ?? 1;
-                        final maxQty = items[index]['maxQuantity'] ?? 1;
-                        items[index]['quantity'] = newQty > maxQty ? maxQty : newQty;
-                      });
+                      if (!_isDisposed && mounted) {
+                        _safeSetState(() {
+                          final newQty = int.tryParse(value) ?? 1;
+                          final maxQty = items[index]['maxQuantity'] ?? 1;
+                          items[index]['quantity'] = newQty > maxQty ? maxQty : newQty;
+                        });
+                      }
                     },
                     validator: (value) {
                       if (value == null || value.isEmpty || int.tryParse(value) == null) {
@@ -666,9 +702,9 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                     },
                   ),
                 ),
-                
+
                 const SizedBox(width: 12),
-                
+
                 // Price Display (Read-only)
                 Expanded(
                   flex: 2,
@@ -702,9 +738,9 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             // Item Total
             Container(
               padding: const EdgeInsets.all(12),
@@ -776,7 +812,11 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                   ),
                   prefixIcon: const Icon(Icons.discount_outlined, color: Colors.green),
                 ),
-                onChanged: (value) => setState(() {}),
+                onChanged: (value) {
+                  if (!_isDisposed && mounted) {
+                    _safeSetState(() {});
+                  }
+                },
               ),
             ),
             const SizedBox(width: 16),
@@ -791,7 +831,11 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                   ),
                   prefixIcon: const Icon(Icons.local_offer_outlined, color: Colors.purple),
                 ),
-                onChanged: (value) => setState(() {}),
+                onChanged: (value) {
+                  if (!_isDisposed && mounted) {
+                    _safeSetState(() {});
+                  }
+                },
               ),
             ),
           ],
@@ -810,7 +854,11 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                   ),
                   prefixIcon: const Icon(Icons.percent_outlined, color: Colors.orange),
                 ),
-                onChanged: (value) => setState(() {}),
+                onChanged: (value) {
+                  if (!_isDisposed && mounted) {
+                    _safeSetState(() {});
+                  }
+                },
               ),
             ),
             const SizedBox(width: 16),
@@ -831,9 +879,11 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                   );
                 }).toList(),
                 onChanged: (String? newValue) {
-                  setState(() {
-                    _selectedPaymentTerms = newValue!;
-                  });
+                  if (newValue != null && !_isDisposed && mounted) {
+                    _safeSetState(() {
+                      _selectedPaymentTerms = newValue;
+                    });
+                  }
                 },
               ),
             ),
@@ -992,24 +1042,24 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                 ),
                 child: _isLoading
                     ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
                     : const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.save),
-                          SizedBox(width: 8),
-                          Text(
-                            'Create Invoice',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.save),
+                    SizedBox(width: 8),
+                    Text(
+                      'Create Invoice',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -1019,26 +1069,30 @@ class _CreateInvoiceState extends State<CreateInvoice> {
   }
 
   void _addItem() {
-    setState(() {
-      items.add({'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'description': '', 'maxQuantity': 1});
-    });
+    if (!_isDisposed && mounted) {
+      _safeSetState(() {
+        items.add({'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'description': '', 'maxQuantity': 1});
+      });
+    }
   }
 
   void _removeItem(int index) {
-    setState(() {
-      items.removeAt(index);
-    });
+    if (!_isDisposed && mounted) {
+      _safeSetState(() {
+        items.removeAt(index);
+      });
+    }
   }
 
   Future<void> _saveInvoice() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_isDisposed && mounted && !_formKey.currentState!.validate()) return;
 
     bool allItemsValid = items.every((item) =>
-        (item['name'] ?? '').toString().isNotEmpty &&
+    (item['name'] ?? '').toString().isNotEmpty &&
         ((item['quantity'] ?? 0) as int) > 0 &&
         ((item['price'] ?? 0.0) as double) > 0);
 
-    if (!allItemsValid) {
+    if (!_isDisposed && mounted && !allItemsValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please fill all required item details'),
@@ -1048,9 +1102,11 @@ class _CreateInvoiceState extends State<CreateInvoice> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    if (!_isDisposed && mounted) {
+      _safeSetState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -1062,25 +1118,25 @@ class _CreateInvoiceState extends State<CreateInvoice> {
       for (var item in items) {
         final itemSku = item['sku'] as String;
         final requiredQuantity = item['quantity'] as int;
-        
+
         if (itemSku.isNotEmpty) {  // Only validate if SKU is provided
           final stockQuery = await FirebaseFirestore.instance
               .collection('stock_items')
               .where('userId', isEqualTo: user.uid)
               .where('sku', isEqualTo: itemSku)
               .get();
-          
+
           if (stockQuery.docs.isEmpty) {
             throw Exception('Stock item with SKU "$itemSku" not found');
           }
-          
+
           final stockDoc = stockQuery.docs.first;
           final stockData = stockDoc.data();
           final currentStock = stockData['quantity'] as int;
-          
+
           if (currentStock < requiredQuantity) {
             throw Exception(
-              'Insufficient stock for "${item['name']}". Available: $currentStock, Required: $requiredQuantity'
+                'Insufficient stock for "${item['name']}". Available: $currentStock, Required: $requiredQuantity'
             );
           }
         }
@@ -1126,20 +1182,20 @@ class _CreateInvoiceState extends State<CreateInvoice> {
       for (var item in items) {
         final itemSku = item['sku'] as String;
         final soldQuantity = item['quantity'] as int;
-        
+
         if (itemSku.isNotEmpty) {  // Only reduce stock if SKU is provided
           final stockQuery = await FirebaseFirestore.instance
               .collection('stock_items')
               .where('userId', isEqualTo: user.uid)
               .where('sku', isEqualTo: itemSku)
               .get();
-          
+
           if (stockQuery.docs.isNotEmpty) {
             final stockDoc = stockQuery.docs.first;
             final stockData = stockDoc.data();
             final currentStock = stockData['quantity'] as int;
             final newStock = currentStock - soldQuantity;
-            
+
             await FirebaseFirestore.instance
                 .collection('stock_items')
                 .doc(stockDoc.id)
@@ -1151,11 +1207,11 @@ class _CreateInvoiceState extends State<CreateInvoice> {
         }
       }
 
-      if (mounted) {
+      if (!_isDisposed && mounted) {
         _showSuccessDialog(invoice);
       }
     } catch (e) {
-      if (mounted) {
+      if (!_isDisposed && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error creating invoice: ${e.toString()}'),
@@ -1164,8 +1220,8 @@ class _CreateInvoiceState extends State<CreateInvoice> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
+      if (!_isDisposed && mounted) {
+        _safeSetState(() {
           _isLoading = false;
         });
       }
@@ -1213,9 +1269,9 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                   size: 40,
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               const Text(
                 'Invoice Created Successfully!',
                 style: TextStyle(
@@ -1224,9 +1280,9 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -1246,9 +1302,9 @@ class _CreateInvoiceState extends State<CreateInvoice> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               Row(
                 children: [
                   Expanded(
@@ -1303,12 +1359,14 @@ class _CreateInvoiceState extends State<CreateInvoice> {
     _extraDiscountController.text = '0';
     _taxController.text = '17';
     _notesController.clear();
-    setState(() {
-      items = [{'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'description': '', 'maxQuantity': 1}];
-      _selectedPaymentTerms = '30 days';
-      _selectedShopId = null;
-      _selectedShop = null;
-    });
+    if (!_isDisposed && mounted) {
+      _safeSetState(() {
+        items = [{'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'description': '', 'maxQuantity': 1}];
+        _selectedPaymentTerms = '30 days';
+        _selectedShopId = null;
+        _selectedShop = null;
+      });
+    }
   }
 
   void _showHelpDialog() {
@@ -1367,12 +1425,12 @@ class _CreateInvoiceState extends State<CreateInvoice> {
       final customer = invoice['customer'];
       final pricing = invoice['pricing'];
       final items = invoice['items'] as List;
-      
+
       String message = "📄 *INVOICE DETAILS*\n\n";
       message += "🆔 Invoice ID: ${invoice['id']}\n";
       message += "👤 Customer: ${customer['name']}\n";
       message += "📅 Date: ${DateTime.parse(invoice['createdAt']).toString().substring(0, 10)}\n\n";
-      
+
       message += "📦 *ITEMS:*\n";
       for (int i = 0; i < items.length; i++) {
         final item = items[i];
@@ -1380,7 +1438,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
         message += "   Qty: ${item['quantity']} × Rs ${(item['price'] as double).toStringAsFixed(2)}\n";
         message += "   Total: Rs ${((item['quantity'] as int) * (item['price'] as double)).toStringAsFixed(2)}\n\n";
       }
-      
+
       message += "💰 *PRICING:*\n";
       message += "Subtotal: Rs ${(pricing['subtotal'] as double).toStringAsFixed(2)}\n";
       if ((pricing['discount'] as double) > 0) {
@@ -1391,23 +1449,23 @@ class _CreateInvoiceState extends State<CreateInvoice> {
       }
       message += "Tax (${(pricing['taxRate'] as double).toStringAsFixed(1)}%): Rs ${(pricing['taxAmount'] as double).toStringAsFixed(2)}\n";
       message += "*Total: Rs ${(pricing['total'] as double).toStringAsFixed(2)}*\n\n";
-      
+
       message += "💳 Payment Terms: ${invoice['paymentTerms']}\n";
       message += "✅ Status: ${invoice['status']}\n";
-      
+
       if (invoice['notes'] != null && invoice['notes'].toString().isNotEmpty) {
         message += "\n📝 Notes: ${invoice['notes']}\n";
       }
-      
+
       message += "\n---\nGenerated by Business Manager App";
-      
+
       final encodedMessage = Uri.encodeComponent(message);
       final whatsappUrl = "https://wa.me/?text=$encodedMessage";
-      
+
       if (await canLaunchUrl(Uri.parse(whatsappUrl))) {
         await launchUrl(Uri.parse(whatsappUrl), mode: LaunchMode.externalApplication);
       } else {
-        if (mounted) {
+        if (!_isDisposed && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('WhatsApp is not installed on this device'),
@@ -1417,7 +1475,7 @@ class _CreateInvoiceState extends State<CreateInvoice> {
         }
       }
     } catch (e) {
-      if (mounted) {
+      if (!_isDisposed && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error sharing invoice: ${e.toString()}'),

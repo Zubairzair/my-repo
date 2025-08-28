@@ -96,6 +96,8 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
                 const SizedBox(height: 24),
                 _buildStatsGrid(),
                 const SizedBox(height: 24),
+                _buildMonthlySalesChart(),
+                const SizedBox(height: 24),
                 _buildQuickActions(),
                 const SizedBox(height: 24),
                 _buildRecentInvoices(),
@@ -494,7 +496,7 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
                     'Create Invoice',
                     Icons.add_circle_outline,
                     Colors.blueAccent,
-                        () {
+                    () {
                       widget.onNavigateToTab(1); // Navigate to Invoices tab
                     },
                   ),
@@ -507,7 +509,7 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
                     'View Reports',
                     Icons.analytics_outlined,
                     Colors.green,
-                        () {
+                    () {
                       widget.onNavigateToTab(2); // Navigate to Stock Reports tab
                     },
                   ),
@@ -520,7 +522,7 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
                     'Check Profits',
                     Icons.trending_up_outlined,
                     Colors.orange,
-                        () {
+                    () {
                       widget.onNavigateToTab(3); // Navigate to Profits tab
                     },
                   ),
@@ -533,7 +535,7 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
                     'Profile Settings',
                     Icons.person_outline,
                     Colors.purple,
-                        () {
+                    () {
                       Navigator.pushNamed(context, '/profile');
                     },
                   ),
@@ -872,6 +874,253 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
         return Colors.red;
       default:
         return Colors.orange;
+    }
+  }
+
+  Widget _buildMonthlySalesChart() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Monthly Sales Progress',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                spreadRadius: 0,
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('invoices')
+                .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const SizedBox(
+                  height: 200,
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              if (snapshot.hasError || !snapshot.hasData) {
+                return const SizedBox(
+                  height: 200,
+                  child: Center(
+                    child: Text(
+                      'Unable to load chart data',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                );
+              }
+
+              final invoices = snapshot.data!.docs;
+              final monthlyData = _calculateMonthlyData(invoices);
+
+              return Column(
+                children: [
+                  Text(
+                    'Sales trend over the last 6 months',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 200,
+                    child: _buildCustomChart(monthlyData),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Map<String, double> _calculateMonthlyData(List<QueryDocumentSnapshot> invoices) {
+    final now = DateTime.now();
+    final monthlyTotals = <String, double>{};
+    
+    // Initialize last 6 months with month names
+    for (int i = 5; i >= 0; i--) {
+      final month = DateTime(now.year, now.month - i, 1);
+      final monthKey = _getMonthName(month.month);
+      monthlyTotals[monthKey] = 0.0;
+    }
+
+    // Calculate totals for each month
+    for (final doc in invoices) {
+      try {
+        final data = doc.data() as Map<String, dynamic>;
+        final createdAt = DateTime.parse(data['createdAt']);
+        final monthKey = _getMonthName(createdAt.month);
+        
+        // Only include data from the last 6 months
+        final monthsAgo = (now.year - createdAt.year) * 12 + (now.month - createdAt.month);
+        if (monthsAgo >= 0 && monthsAgo <= 5 && monthlyTotals.containsKey(monthKey)) {
+          final pricing = data['pricing'] as Map<String, dynamic>?;
+          final total = pricing?['total'] as double? ?? 0.0;
+          monthlyTotals[monthKey] = (monthlyTotals[monthKey] ?? 0.0) + total;
+        }
+      } catch (e) {
+        debugPrint('Error processing invoice for chart: $e');
+      }
+    }
+
+    return monthlyTotals;
+  }
+
+  String _getMonthName(int month) {
+    const monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return monthNames[month - 1];
+  }
+
+  Widget _buildCustomChart(Map<String, double> monthlyData) {
+    if (monthlyData.isEmpty) {
+      return const Center(
+        child: Text(
+          'No sales data available',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
+    final maxValue = monthlyData.values.isNotEmpty 
+        ? monthlyData.values.reduce((a, b) => a > b ? a : b)
+        : 0.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final chartHeight = constraints.maxWidth > 600 ? 160.0 : 120.0;
+        final barSpacing = constraints.maxWidth > 400 ? 8.0 : 4.0;
+        final fontSize = constraints.maxWidth > 400 ? 10.0 : 8.0;
+        
+        return Container(
+          padding: EdgeInsets.all(constraints.maxWidth > 400 ? 16.0 : 12.0),
+          child: Column(
+            children: [
+              // Chart bars
+              SizedBox(
+                height: chartHeight,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: monthlyData.entries.map((entry) {
+                    final barHeight = maxValue > 0 
+                        ? (entry.value / maxValue) * (chartHeight - 30)
+                        : 0.0;
+                    
+                    return Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: barSpacing / 2),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            // Value label
+                            if (entry.value > 0) ...[
+                              Flexible(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'Rs ${_formatChartAmount(entry.value)}',
+                                    style: TextStyle(
+                                      fontSize: fontSize,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.blueAccent,
+                                    ),
+                                    maxLines: 1,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                            ],
+                            // Bar
+                            Container(
+                              height: barHeight.clamp(entry.value > 0 ? 8.0 : 2.0, chartHeight - 30),
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                gradient: entry.value > 0 
+                                    ? LinearGradient(
+                                        begin: Alignment.bottomCenter,
+                                        end: Alignment.topCenter,
+                                        colors: [
+                                          Colors.blueAccent,
+                                          Colors.blueAccent.withOpacity(0.6),
+                                        ],
+                                      )
+                                    : LinearGradient(
+                                        colors: [
+                                          Colors.grey.withOpacity(0.3),
+                                          Colors.grey.withOpacity(0.1),
+                                        ],
+                                      ),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Month labels
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: monthlyData.keys.map((month) {
+                  return Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        month,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: fontSize + 2,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatChartAmount(double amount) {
+    if (amount >= 100000) {
+      return '${(amount / 100000).toStringAsFixed(1)}L';
+    } else if (amount >= 1000) {
+      return '${(amount / 1000).toStringAsFixed(1)}K';
+    } else {
+      return amount.toStringAsFixed(0);
     }
   }
 }

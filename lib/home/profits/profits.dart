@@ -389,62 +389,58 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
 
         final invoices = snapshot.data!.docs;
 
-        return Flexible(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Flexible(
-                      child: Text(
-                        'Profit Details',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Profit Details',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    Flexible(
-                      child: TextButton.icon(
-                        onPressed: () {
-                          // Add export functionality here
-                        },
-                        icon: const Icon(Icons.download, size: 16),
-                        label: const Text(
-                          'Export',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.blueAccent,
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.only(
-                    left: 20,
-                    right: 20,
-                    bottom: 20,
                   ),
-                  itemCount: invoices.length,
-                  itemBuilder: (context, index) {
-                    final invoice = invoices[index].data() as Map<String, dynamic>;
-                    return _buildProfitCard(invoice);
-                  },
-                ),
+                  TextButton.icon(
+                    onPressed: () {
+                      // Add export functionality here
+                    },
+                    icon: const Icon(Icons.download, size: 16),
+                    label: const Text(
+                      'Export',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.blueAccent,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  bottom: 20,
+                ),
+                itemCount: invoices.length,
+                itemBuilder: (context, index) {
+                  final invoice = invoices[index].data() as Map<String, dynamic>;
+                  return _buildProfitCard(invoice);
+                },
+              ),
+            ),
+          ],
         );
       },
     );

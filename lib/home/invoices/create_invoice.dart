@@ -195,8 +195,30 @@ class _CreateInvoiceState extends State<CreateInvoice>
 
   void _safeSetState(VoidCallback callback) {
     if (!_isDisposed && mounted) {
-      setState(callback);
+      // Use Future.microtask to prevent widget hierarchy issues
+      Future.microtask(() {
+        if (!_isDisposed && mounted) {
+          setState(callback);
+        }
+      });
     }
+  }
+
+  String? _getValidDropdownValue(String? selectedSku) {
+    // Always return null if no stock items or empty/null SKU
+    if (_stockItems.isEmpty || selectedSku == null || selectedSku.isEmpty) {
+      return null;
+    }
+    
+    // Only return the SKU if it exists in the current items list
+    for (var item in _stockItems) {
+      if (item['sku']?.toString() == selectedSku) {
+        return selectedSku;
+      }
+    }
+    
+    // If not found, return null to reset dropdown
+    return null;
   }
 
   @override
@@ -588,7 +610,7 @@ class _CreateInvoiceState extends State<CreateInvoice>
     final qty = (items[index]['quantity'] ?? 1) as int;
     final price = (items[index]['price'] ?? 0.0) as double;
     final itemTotal = qty * price;
-    final selectedSku = items[index]['sku'] ?? '';
+    final selectedSku = _getValidDropdownValue(items[index]['sku']?.toString());
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -636,7 +658,8 @@ class _CreateInvoiceState extends State<CreateInvoice>
 
           // Stock Item Selection Dropdown
           DropdownButtonFormField<String>(
-            value: selectedSku.isEmpty ? null : selectedSku,
+            key: ValueKey('dropdown_$index'),
+            value: null, // Always start with null to prevent assertion errors
             decoration: InputDecoration(
               labelText: 'Select Item from Stock *',
               border: OutlineInputBorder(
@@ -662,31 +685,21 @@ class _CreateInvoiceState extends State<CreateInvoice>
                     value: null,
                     child: Text('Choose an item...'),
                   ),
-                  ..._stockItems.map((stockItem) {
+                  ..._stockItems.where((item) => item['sku'] != null && item['sku'].toString().isNotEmpty).map((stockItem) {
+                    final sku = stockItem['sku']?.toString() ?? '';
+                    final name = stockItem['name']?.toString() ?? 'Unnamed Item';
+                    final quantity = stockItem['quantity'] ?? 0;
+                    final price = stockItem['price'] ?? 0.0;
+                    
                     return DropdownMenuItem<String>(
-                      value: stockItem['sku'],
+                      value: sku,
                       child: SizedBox(
                         width: double.infinity,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              stockItem['name'] ?? 'Unnamed Item',
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                            Text(
-                              'SKU: ${stockItem['sku']} | Stock: ${stockItem['quantity']} | Rs ${stockItem['price']}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ],
+                        child: Text(
+                          '$name (SKU: $sku) - Qty: $quantity - Rs $price',
+                          style: const TextStyle(fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ),
                     );
@@ -694,30 +707,39 @@ class _CreateInvoiceState extends State<CreateInvoice>
                 ],
             onChanged: (value) {
               if (value != null && !_isDisposed && mounted) {
-                final stockItem = _stockItems.firstWhere((item) => item['sku'] == value);
-                _safeSetState(() {
-                  items[index]['sku'] = stockItem['sku'];
-                  items[index]['name'] = stockItem['name'];
-                  items[index]['price'] = stockItem['price'];
-                  items[index]['description'] = stockItem['description'] ?? '';
-                  items[index]['maxQuantity'] = stockItem['quantity'];
+                // Find stock item by SKU with proper null safety
+                final stockItem = _stockItems.firstWhere(
+                  (item) => item['sku']?.toString() == value,
+                  orElse: () => <String, dynamic>{},
+                );
+                
+                if (stockItem.isNotEmpty) {
+                  _safeSetState(() {
+                    items[index]['sku'] = stockItem['sku']?.toString() ?? '';
+                    items[index]['name'] = stockItem['name']?.toString() ?? '';
+                    items[index]['price'] = (stockItem['price'] is num) ? stockItem['price'].toDouble() : 0.0;
+                    items[index]['description'] = stockItem['description']?.toString() ?? '';
+                    items[index]['maxQuantity'] = (stockItem['quantity'] is num) ? stockItem['quantity'].toInt() : 1;
 
-                  // Reset quantity to 1 when item changes
-                  if (items[index]['quantity'] > stockItem['quantity']) {
-                    items[index]['quantity'] = 1;
-                  }
-                });
+                    // Reset quantity to 1 when item changes
+                    final maxQty = items[index]['maxQuantity'] as int;
+                    final currentQty = items[index]['quantity'] as int;
+                    if (currentQty > maxQty) {
+                      items[index]['quantity'] = 1;
+                    }
+                  });
+                }
               }
             },
             validator: (value) {
-              if (value == null || value.isEmpty) {
+              if (value == null) {
                 return 'Please select an item';
               }
               return null;
             },
           ),
 
-          if (selectedSku.isNotEmpty) ...[
+          if (selectedSku != null) ...[
             const SizedBox(height: 12),
 
             // Selected Item Details Display
@@ -1061,11 +1083,7 @@ class _CreateInvoiceState extends State<CreateInvoice>
                     color: Colors.blueAccent.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
-                    Icons.summarize_outlined,
-                    color: Colors.blueAccent,
-                    size: 20,
-                  ),
+                  child: const Icon(Icons.summarize_outlined, color: Colors.blueAccent),
                 ),
                 const SizedBox(width: 12),
                 const Text(
@@ -1079,9 +1097,62 @@ class _CreateInvoiceState extends State<CreateInvoice>
               ],
             ),
             const SizedBox(height: 16),
+            
+            // Shop Information Section
+            if (_selectedShop != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.store, color: Colors.blueAccent, size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Shop: ${_selectedShop!['name']}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_selectedShop!['address'] != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Address: ${_selectedShop!['address']}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                    if (_selectedShop!['phone'] != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Phone: ${_selectedShop!['phone']}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            
             _buildSummaryRow('Subtotal:', 'Rs ${subtotal.toStringAsFixed(2)}', false),
             const SizedBox(height: 8),
-            _buildSummaryRow('Item Discount:', '- Rs ${discount.toStringAsFixed(2)}', false, color: Colors.red),
+            _buildSummaryRow('Discount:', '- Rs ${discount.toStringAsFixed(2)}', false, color: Colors.red),
             const SizedBox(height: 8),
             _buildSummaryRow('Extra Discount:', '- Rs ${extraDiscount.toStringAsFixed(2)}', false, color: Colors.purple),
             const SizedBox(height: 8),

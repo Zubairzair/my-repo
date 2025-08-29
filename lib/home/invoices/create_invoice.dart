@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../services/invoice_export_service.dart';
 
 class CreateInvoice extends StatefulWidget {
   const CreateInvoice({super.key});
@@ -27,7 +28,7 @@ class _CreateInvoiceState extends State<CreateInvoice>
   late final TextEditingController _notesController;
 
   List<Map<String, dynamic>> items = [
-    {'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'description': ''}
+    {'name': '', 'sku': '', 'quantity': 1, 'price': 0.0}
   ];
 
   bool _isLoading = false;
@@ -47,7 +48,7 @@ class _CreateInvoiceState extends State<CreateInvoice>
           ((item['quantity'] ?? 1) as int) *
               ((item['price'] ?? 0.0) as double));
 
-  double get discount => double.tryParse(_discountController.text) ?? 0.0;
+  double get discount => (double.tryParse(_discountController.text) ?? 0.0) * subtotal / 100;
   double get extraDiscount => double.tryParse(_extraDiscountController.text) ?? 0.0;
 
   double get taxRate => (double.tryParse(_taxController.text) ?? 0.0) / 100;
@@ -718,7 +719,6 @@ class _CreateInvoiceState extends State<CreateInvoice>
                     items[index]['sku'] = stockItem['sku']?.toString() ?? '';
                     items[index]['name'] = stockItem['name']?.toString() ?? '';
                     items[index]['price'] = (stockItem['price'] is num) ? stockItem['price'].toDouble() : 0.0;
-                    items[index]['description'] = stockItem['description']?.toString() ?? '';
                     items[index]['maxQuantity'] = (stockItem['quantity'] is num) ? stockItem['quantity'].toInt() : 1;
 
                     // Reset quantity to 1 when item changes
@@ -748,8 +748,8 @@ class _CreateInvoiceState extends State<CreateInvoice>
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.blue.withOpacity(0.05),
-                border: Border.all(color: Colors.blue.withOpacity(0.3)),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withOpacity(0.2)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -785,12 +785,6 @@ class _CreateInvoiceState extends State<CreateInvoice>
                     'Unit Price: Rs ${price.toStringAsFixed(2)}',
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (items[index]['description'] != null && items[index]['description'].toString().isNotEmpty)
-                    Text(
-                      'Description: ${items[index]['description']}',
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 2,
-                    ),
                 ],
               ),
             ),
@@ -946,11 +940,12 @@ class _CreateInvoiceState extends State<CreateInvoice>
                 controller: _discountController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Item Discount (Rs)',
+                  labelText: 'Discount (%)',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   prefixIcon: const Icon(Icons.discount_outlined, color: Colors.green),
+                  helperText: 'Enter percentage (e.g., 3 for 3%)',
                 ),
                 onChanged: (value) {
                   if (!_isDisposed && mounted) {
@@ -1152,7 +1147,7 @@ class _CreateInvoiceState extends State<CreateInvoice>
             
             _buildSummaryRow('Subtotal:', 'Rs ${subtotal.toStringAsFixed(2)}', false),
             const SizedBox(height: 8),
-            _buildSummaryRow('Discount:', '- Rs ${discount.toStringAsFixed(2)}', false, color: Colors.red),
+            _buildSummaryRow('Discount:', '- Rs ${(discount / 100 * subtotal).toStringAsFixed(2)}', false, color: Colors.red),
             const SizedBox(height: 8),
             _buildSummaryRow('Extra Discount:', '- Rs ${extraDiscount.toStringAsFixed(2)}', false, color: Colors.purple),
             const SizedBox(height: 8),
@@ -1269,7 +1264,7 @@ class _CreateInvoiceState extends State<CreateInvoice>
   void _addItem() {
     if (!_isDisposed && mounted) {
       _safeSetState(() {
-        items.add({'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'description': '', 'maxQuantity': 1});
+        items.add({'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'maxQuantity': 1});
       });
     }
   }
@@ -1529,16 +1524,36 @@ class _CreateInvoiceState extends State<CreateInvoice>
                     ),
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Close dialog
-                      _shareInvoiceWhatsApp(invoice);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context); // Close dialog
+                        _showExportDialog(invoice, invoice['customer'], items, invoice['pricing']);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Export'),
                     ),
-                    child: const Text('Share WhatsApp'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context); // Close dialog
+                        _shareInvoiceWhatsApp(invoice);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Share WhatsApp'),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1573,7 +1588,7 @@ class _CreateInvoiceState extends State<CreateInvoice>
     _notesController.clear();
     if (!_isDisposed && mounted) {
       _safeSetState(() {
-        items = [{'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'description': '', 'maxQuantity': 1}];
+        items = [{'name': '', 'sku': '', 'quantity': 1, 'price': 0.0, 'maxQuantity': 1}];
         _selectedPaymentTerms = '30 days';
         _selectedShopId = null;
         _selectedShop = null;
@@ -1703,5 +1718,15 @@ class _CreateInvoiceState extends State<CreateInvoice>
         );
       }
     }
+  }
+
+  void _showExportDialog(Map<String, dynamic> invoice, Map<String, dynamic> customer, List<Map<String, dynamic>> items, Map<String, dynamic> pricing) {
+    InvoiceExportService.showExportDialog(
+      context,
+      invoice,
+      customer,
+      items,
+      pricing,
+    );
   }
 }

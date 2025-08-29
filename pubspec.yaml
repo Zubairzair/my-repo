@@ -43,7 +43,7 @@ dependencies:
   path_provider: ^2.1.5                 # Compatible with Flutter 3.19+
   url_launcher: ^6.3.2                  # Latest stable version listed
   intl: ^0.20.2                         # Supports latest Flutter/Dart
-  lottie: ^3.3.1                        # Latest version
+  lottie: ^3.3.0                        # Latest version
   animations: ^2.0.11                   # Latest stable
   flutter_svg: ^2.2.0                   # Latest null-safe version
   fluttertoast: ^8.2.12                 # Latest release
@@ -54,6 +54,10 @@ dependencies:
   cloud_firestore: ^6.0.0
   firebase_auth: ^6.0.1                 # Firebase Authentication
   formz: ^0.8.0                         # Form validation
+  share_plus: ^7.0.0                    # Share functionality
+  pdf: ^3.10.7                          # PDF generation
+  excel: ^2.0.6                         # Excel generation
+  screenshot: ^2.1.0                    # Screenshot functionality
   
 dev_dependencies:
   flutter_test:

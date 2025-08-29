@@ -4,7 +4,6 @@ class Shop {
   final String address;
   final String phone;
   final String email;
-  final String? contactPerson;
   final String? gstNumber;
   final String? businessType;
   final DateTime createdAt;
@@ -16,7 +15,6 @@ class Shop {
     required this.address,
     required this.phone,
     required this.email,
-    this.contactPerson,
     this.gstNumber,
     this.businessType,
     required this.createdAt,
@@ -30,7 +28,6 @@ class Shop {
       address: json['address'] ?? '',
       phone: json['phone'] ?? '',
       email: json['email'] ?? '',
-      contactPerson: json['contactPerson'],
       gstNumber: json['gstNumber'],
       businessType: json['businessType'],
       createdAt: DateTime.parse(json['createdAt']),
@@ -45,7 +42,6 @@ class Shop {
       'address': address,
       'phone': phone,
       'email': email,
-      'contactPerson': contactPerson,
       'gstNumber': gstNumber,
       'businessType': businessType,
       'createdAt': createdAt.toIso8601String(),

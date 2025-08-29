@@ -2,12 +2,9 @@ class Product {
   final String id;
   final String name;
   final String sku;
-  final String category;
-  final String description;
   final double price;
   final int quantity;
   final int minStock;
-  final String? supplier;
   final List<ProductVariation> variations;
   final DateTime createdAt;
   final DateTime lastUpdated;
@@ -17,12 +14,9 @@ class Product {
     required this.id,
     required this.name,
     required this.sku,
-    required this.category,
-    required this.description,
     required this.price,
     required this.quantity,
     required this.minStock,
-    this.supplier,
     this.variations = const [],
     required this.createdAt,
     required this.lastUpdated,
@@ -34,12 +28,9 @@ class Product {
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       sku: json['sku'] ?? '',
-      category: json['category'] ?? '',
-      description: json['description'] ?? '',
       price: (json['price'] ?? 0).toDouble(),
       quantity: json['quantity'] ?? 0,
       minStock: json['minStock'] ?? 0,
-      supplier: json['supplier'],
       variations: (json['variations'] as List<dynamic>?)
           ?.map((v) => ProductVariation.fromJson(v))
           .toList() ?? [],
@@ -54,12 +45,9 @@ class Product {
       'id': id,
       'name': name,
       'sku': sku,
-      'category': category,
-      'description': description,
       'price': price,
       'quantity': quantity,
       'minStock': minStock,
-      'supplier': supplier,
       'variations': variations.map((v) => v.toJson()).toList(),
       'createdAt': createdAt.toIso8601String(),
       'lastUpdated': lastUpdated.toIso8601String(),

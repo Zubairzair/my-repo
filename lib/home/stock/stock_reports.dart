@@ -11,7 +11,7 @@ class StockReports extends StatefulWidget {
 
 class _StockReportsState extends State<StockReports> {
   String selectedCategory = 'All';
-  final List<String> categories = ['All', 'Electronics', 'Accessories', 'Services'];
+  final List<String> categories = ['All'];
 
   @override
   Widget build(BuildContext context) {
@@ -252,39 +252,7 @@ class _StockReportsState extends State<StockReports> {
   }
 
   Widget _buildCategoryFilter() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      color: Colors.white,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: categories.map((category) {
-            final isSelected = selectedCategory == category;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(category),
-                selected: isSelected,
-                onSelected: (selected) {
-                  setState(() {
-                    selectedCategory = category;
-                  });
-                },
-                backgroundColor: Colors.grey[200],
-                selectedColor: Colors.blueAccent.withOpacity(0.2),
-                labelStyle: TextStyle(
-                  color: isSelected ? Colors.blueAccent : Colors.black87,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                ),
-                side: BorderSide(
-                  color: isSelected ? Colors.blueAccent : Colors.grey[300]!,
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
+    return const SizedBox.shrink();
   }
 
   Widget _buildStockList() {
@@ -351,15 +319,15 @@ class _StockReportsState extends State<StockReports> {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) return Stream.empty();
 
-    Query query = FirebaseFirestore.instance
-        .collection('stock_items')
-        .where('userId', isEqualTo: userId);
-
-    if (selectedCategory != 'All') {
-      query = query.where('category', isEqualTo: selectedCategory);
+    try {
+      return FirebaseFirestore.instance
+          .collection('stock_items')
+          .where('userId', isEqualTo: userId)
+          .snapshots();
+    } catch (e) {
+      debugPrint('Error creating stocks stream: $e');
+      return Stream.empty();
     }
-
-    return query.snapshots();
   }
 
   Widget _buildEmptyState() {
@@ -381,9 +349,7 @@ class _StockReportsState extends State<StockReports> {
           ),
           const SizedBox(height: 24),
           Text(
-            selectedCategory == 'All' 
-                ? 'No stock items yet'
-                : 'No ${selectedCategory.toLowerCase()} items',
+            'No stock items yet',
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -392,9 +358,7 @@ class _StockReportsState extends State<StockReports> {
           ),
           const SizedBox(height: 8),
           Text(
-            selectedCategory == 'All'
-                ? 'Add your first stock item to get started'
-                : 'No items found in this category',
+            'Add your first stock item to get started',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[600],
@@ -402,20 +366,19 @@ class _StockReportsState extends State<StockReports> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          if (selectedCategory == 'All')
-            ElevatedButton.icon(
-              onPressed: _showAddStockDialog,
-              icon: const Icon(Icons.add),
-              label: const Text('Add Stock Item'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+          ElevatedButton.icon(
+            onPressed: _showAddStockDialog,
+            icon: const Icon(Icons.add),
+            label: const Text('Add Stock Item'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
+          ),
         ],
       ),
     );
@@ -481,28 +444,8 @@ class _StockReportsState extends State<StockReports> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${item['category'] ?? 'Uncategorized'}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
-                          ),
                         ],
                       ),
-                      if (item['description'] != null && item['description'].toString().isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          item['description'],
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey[600],
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -639,12 +582,9 @@ class _StockReportsState extends State<StockReports> {
   void _showAddStockDialog() {
     final nameController = TextEditingController();
     final skuController = TextEditingController();
-    final categoryController = TextEditingController();
     final quantityController = TextEditingController();
     final minStockController = TextEditingController();
     final priceController = TextEditingController();
-    final supplierController = TextEditingController();
-    final descriptionController = TextEditingController();
 
     // Auto-generate SKU
     final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -686,25 +626,6 @@ class _StockReportsState extends State<StockReports> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: categoryController,
-                  decoration: const InputDecoration(
-                    labelText: 'Category *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.category),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.description),
-                  ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
@@ -742,15 +663,6 @@ class _StockReportsState extends State<StockReports> {
                   ),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: supplierController,
-                  decoration: const InputDecoration(
-                    labelText: 'Supplier',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.business),
-                  ),
-                ),
               ],
             ),
           ),
@@ -764,7 +676,6 @@ class _StockReportsState extends State<StockReports> {
             onPressed: () async {
               if (nameController.text.isNotEmpty &&
                   skuController.text.isNotEmpty &&
-                  categoryController.text.isNotEmpty &&
                   quantityController.text.isNotEmpty &&
                   minStockController.text.isNotEmpty &&
                   priceController.text.isNotEmpty) {
@@ -793,12 +704,9 @@ class _StockReportsState extends State<StockReports> {
                     'userId': FirebaseAuth.instance.currentUser?.uid,
                     'name': nameController.text,
                     'sku': skuController.text,
-                    'category': categoryController.text,
-                    'description': descriptionController.text,
                     'quantity': int.parse(quantityController.text),
                     'minStock': int.parse(minStockController.text),
                     'price': double.parse(priceController.text),
-                    'supplier': supplierController.text,
                     'lastUpdated': DateTime.now().toString().substring(0, 10),
                     'createdAt': DateTime.now().toIso8601String(),
                   });

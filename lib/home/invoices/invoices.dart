@@ -667,9 +667,13 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
                 child: OutlinedButton(
                   onPressed: () {
                     Navigator.pop(context);
-                    _updateInvoiceStatus(invoice['id'] ?? '', 'Paid');
+                    _deleteInvoice(invoice['id'] ?? '', customer['name'] ?? 'Unknown Customer');
                   },
-                  child: const Text('Mark as Paid'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                  ),
+                  child: const Text('Delete'),
                 ),
               ),
               const SizedBox(width: 12),
@@ -767,16 +771,6 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
                 fontWeight: FontWeight.w600,
               ),
             ),
-            if ((item['description'] ?? '').isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                item['description'] ?? '',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -802,6 +796,61 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
         child: Text('Error displaying item: ${e.toString()}'),
       );
     }
+  }
+
+  Future<void> _deleteInvoice(String invoiceId, String customerName) async {
+    if (invoiceId.isEmpty) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('Delete Invoice'),
+        content: Text('Are you sure you want to delete this invoice for "$customerName"? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await FirebaseFirestore.instance
+                    .collection('invoices')
+                    .doc(invoiceId)
+                    .delete();
+
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Invoice deleted successfully!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error deleting invoice: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _updateInvoiceStatus(String invoiceId, String status) async {

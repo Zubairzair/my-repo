@@ -343,7 +343,6 @@ class _ShopsManagementState extends State<ShopsManagement> with AutomaticKeepAli
     final address = shop['address'] ?? 'No address provided';
     final phone = shop['phone'] ?? '';
     final email = shop['email'] ?? '';
-    final contactPerson = shop['contactPerson'] ?? '';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -460,23 +459,6 @@ class _ShopsManagementState extends State<ShopsManagement> with AutomaticKeepAli
               ],
             ),
             
-            if (contactPerson.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(Icons.person_outline, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Contact: $contactPerson',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            
             const SizedBox(height: 16),
             
             Row(
@@ -520,7 +502,6 @@ class _ShopsManagementState extends State<ShopsManagement> with AutomaticKeepAli
     final addressController = TextEditingController(text: shop?['address'] ?? '');
     final phoneController = TextEditingController(text: shop?['phone'] ?? '');
     final emailController = TextEditingController(text: shop?['email'] ?? '');
-    final contactPersonController = TextEditingController(text: shop?['contactPerson'] ?? '');
     final gstNumberController = TextEditingController(text: shop?['gstNumber'] ?? '');
     final businessTypeController = TextEditingController(text: shop?['businessType'] ?? '');
 
@@ -571,9 +552,10 @@ class _ShopsManagementState extends State<ShopsManagement> with AutomaticKeepAli
                 TextField(
                   controller: phoneController,
                   decoration: const InputDecoration(
-                    labelText: 'Phone *',
+                    labelText: 'Phone',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.phone),
+                    helperText: 'Optional',
                   ),
                   keyboardType: TextInputType.phone,
                 ),
@@ -581,20 +563,12 @@ class _ShopsManagementState extends State<ShopsManagement> with AutomaticKeepAli
                 TextField(
                   controller: emailController,
                   decoration: const InputDecoration(
-                    labelText: 'Email *',
+                    labelText: 'Email',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.email),
+                    helperText: 'Optional',
                   ),
                   keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: contactPersonController,
-                  decoration: const InputDecoration(
-                    labelText: 'Contact Person',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
-                  ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
@@ -617,9 +591,7 @@ class _ShopsManagementState extends State<ShopsManagement> with AutomaticKeepAli
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.isNotEmpty &&
-                  addressController.text.isNotEmpty &&
-                  phoneController.text.isNotEmpty &&
-                  emailController.text.isNotEmpty) {
+                  addressController.text.isNotEmpty) {
                 
                 try {
                   final shopData = {
@@ -628,7 +600,6 @@ class _ShopsManagementState extends State<ShopsManagement> with AutomaticKeepAli
                     'address': addressController.text,
                     'phone': phoneController.text,
                     'email': emailController.text,
-                    'contactPerson': contactPersonController.text,
                     'gstNumber': gstNumberController.text,
                     'businessType': businessTypeController.text,
                     'updatedAt': DateTime.now().toIso8601String(),
@@ -668,7 +639,7 @@ class _ShopsManagementState extends State<ShopsManagement> with AutomaticKeepAli
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Please fill all required fields'),
+                    content: Text('Please fill Shop Name and Address (required fields)'),
                     backgroundColor: Colors.red,
                   ),
                 );

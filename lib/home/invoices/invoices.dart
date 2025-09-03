@@ -859,11 +859,36 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
           ElevatedButton(
             onPressed: () async {
               try {
+                print('Attempting to delete invoice with ID: $invoiceId');
+                
+                // Check if user is authenticated
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) {
+                  throw Exception('User not authenticated');
+                }
+                
+                // Verify document exists before deletion
+                final docSnapshot = await FirebaseFirestore.instance
+                    .collection('invoices')
+                    .doc(invoiceId)
+                    .get();
+                
+                if (!docSnapshot.exists) {
+                  throw Exception('Invoice not found');
+                }
+                
+                // Verify user owns this document
+                final data = docSnapshot.data() as Map<String, dynamic>?;
+                if (data?['userId'] != user.uid) {
+                  throw Exception('Unauthorized to delete this invoice');
+                }
+
                 await FirebaseFirestore.instance
                     .collection('invoices')
                     .doc(invoiceId)
                     .delete();
 
+                print('Invoice deleted successfully');
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -874,7 +899,9 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
                   );
                 }
               } catch (e) {
+                print('Error deleting invoice: $e');
                 if (mounted) {
+                  Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error deleting invoice: ${e.toString()}'),

@@ -965,11 +965,36 @@ class _StockReportsState extends State<StockReports> {
           ElevatedButton(
             onPressed: () async {
               try {
+                print('Attempting to delete stock item with docId: $docId');
+                
+                // Check if user is authenticated
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) {
+                  throw Exception('User not authenticated');
+                }
+                
+                // Verify document exists before deletion
+                final docSnapshot = await FirebaseFirestore.instance
+                    .collection('stock_items')
+                    .doc(docId)
+                    .get();
+                
+                if (!docSnapshot.exists) {
+                  throw Exception('Stock item not found');
+                }
+                
+                // Verify user owns this document
+                final data = docSnapshot.data() as Map<String, dynamic>?;
+                if (data?['userId'] != user.uid) {
+                  throw Exception('Unauthorized to delete this item');
+                }
+
                 await FirebaseFirestore.instance
                     .collection('stock_items')
                     .doc(docId)
                     .delete();
 
+                print('Stock item deleted successfully');
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -978,6 +1003,8 @@ class _StockReportsState extends State<StockReports> {
                   ),
                 );
               } catch (e) {
+                print('Error deleting stock item: $e');
+                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Error deleting item: ${e.toString()}'),

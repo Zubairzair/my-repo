@@ -837,11 +837,36 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
           ElevatedButton(
             onPressed: () async {
               try {
+                print('Attempting to delete return with docId: $docId');
+                
+                // Check if user is authenticated
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) {
+                  throw Exception('User not authenticated');
+                }
+                
+                // Verify document exists before deletion
+                final docSnapshot = await FirebaseFirestore.instance
+                    .collection('returns')
+                    .doc(docId)
+                    .get();
+                
+                if (!docSnapshot.exists) {
+                  throw Exception('Return record not found');
+                }
+                
+                // Verify user owns this document
+                final data = docSnapshot.data() as Map<String, dynamic>?;
+                if (data?['userId'] != user.uid) {
+                  throw Exception('Unauthorized to delete this return');
+                }
+
                 await FirebaseFirestore.instance
                     .collection('returns')
                     .doc(docId)
                     .delete();
 
+                print('Return deleted successfully');
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -852,7 +877,9 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
                   );
                 }
               } catch (e) {
+                print('Error deleting return: $e');
                 if (mounted) {
+                  Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error deleting return: ${e.toString()}'),

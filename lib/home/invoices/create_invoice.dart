@@ -22,9 +22,7 @@ class _CreateInvoiceState extends State<CreateInvoice>
   late final TextEditingController _discountController;
   late final TextEditingController _extraDiscountController;
 
-  List<Map<String, dynamic>> items = [
-    {'sku': '', 'quantity': 1, 'unit': '', 'tp': 0.0, 'name': ''}
-  ];
+  List<Map<String, dynamic>> items = [];
 
   bool _isLoading = false;
   bool _isDisposed = false;
@@ -47,11 +45,24 @@ class _CreateInvoiceState extends State<CreateInvoice>
   double get totalDiscount => discount + extraDiscount;
   double get finalTotal => subtotal - totalDiscount;
 
+  Map<String, dynamic> _createEmptyItem() {
+    return {
+      'sku': '',
+      'name': '',
+      'quantity': 1,
+      'unit': 'Pcs',
+      'tp': 0.0,
+      'stockItemId': null,
+      'availableStock': 0,
+    };
+  }
+
   @override
   void initState() {
     super.initState();
     _discountController = TextEditingController(text: '0');
     _extraDiscountController = TextEditingController(text: '0');
+    items = [_createEmptyItem()]; // Initialize with one empty item
     _loadShops();
   }
 
@@ -344,26 +355,67 @@ class _CreateInvoiceState extends State<CreateInvoice>
 
           const SizedBox(height: 16),
 
-          // Item Name
-          TextFormField(
-            initialValue: items[index]['name']?.toString() ?? '',
-            decoration: InputDecoration(
-              labelText: 'Item Name *',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter item name';
+          // Item Name Dropdown from Stock
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: _loadStockItems(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const CircularProgressIndicator();
               }
-              return null;
-            },
-            onChanged: (value) {
-              _safeSetState(() {
-                items[index]['name'] = value;
-              });
+              
+              final stockItems = snapshot.data ?? [];
+              
+              return DropdownButtonFormField<String>(
+                value: items[index]['stockItemId'],
+                decoration: InputDecoration(
+                  labelText: 'Select Item from Stock *',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                isExpanded: true,
+                items: [
+                  const DropdownMenuItem<String>(
+                    value: null,
+                    child: Text('Select item from stock...'),
+                  ),
+                  ...stockItems.map((item) {
+                    return DropdownMenuItem<String>(
+                      value: item['docId'],
+                      child: Text(
+                        '${item['name']} (${item['sku']}) - Stock: ${item['quantity']}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                ],
+                validator: (value) {
+                  if (value == null) {
+                    return 'Please select an item';
+                  }
+                  return null;
+                },
+                onChanged: (value) {
+                  if (value != null) {
+                    final selectedItem = stockItems.firstWhere(
+                      (item) => item['docId'] == value,
+                      orElse: () => {},
+                    );
+                    
+                    if (selectedItem.isNotEmpty) {
+                      _safeSetState(() {
+                        items[index]['stockItemId'] = value;
+                        items[index]['name'] = selectedItem['name'];
+                        items[index]['sku'] = selectedItem['sku'];
+                        items[index]['tp'] = selectedItem['price'] ?? 0.0;
+                        items[index]['unit'] = 'Pcs'; // Default unit
+                        items[index]['availableStock'] = selectedItem['quantity'];
+                      });
+                    }
+                  }
+                },
+              );
             },
           ),
 
@@ -387,6 +439,10 @@ class _CreateInvoiceState extends State<CreateInvoice>
                     final qty = int.tryParse(value ?? '');
                     if (qty == null || qty <= 0) {
                       return 'Enter valid quantity';
+                    }
+                    final availableStock = items[index]['availableStock'] as int? ?? 0;
+                    if (qty > availableStock && availableStock > 0) {
+                      return 'Only $availableStock available';
                     }
                     return null;
                   },
@@ -433,27 +489,30 @@ class _CreateInvoiceState extends State<CreateInvoice>
             children: [
               Expanded(
                 child: TextFormField(
-                  initialValue: tp.toString(),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  initialValue: tp == 0.0 ? '' : tp.toInt().toString(),
+                  keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     labelText: 'TP (Trade Price) *',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    helperText: 'Price per unit',
+                    helperText: 'Price per unit (whole numbers only)',
                   ),
                   validator: (value) {
-                    final tp = double.tryParse(value ?? '');
+                    if (value == null || value.isEmpty) {
+                      return 'Enter price';
+                    }
+                    final tp = int.tryParse(value);
                     if (tp == null || tp <= 0) {
-                      return 'Enter valid price';
+                      return 'Enter valid whole number price';
                     }
                     return null;
                   },
                   onChanged: (value) {
-                    final newTp = double.tryParse(value) ?? 0.0;
+                    final newTp = int.tryParse(value) ?? 0;
                     _safeSetState(() {
-                      items[index]['tp'] = newTp;
+                      items[index]['tp'] = newTp.toDouble();
                     });
                   },
                 ),
@@ -695,7 +754,7 @@ class _CreateInvoiceState extends State<CreateInvoice>
   void _addItem() {
     if (!_isDisposed && mounted) {
       _safeSetState(() {
-        items.add({'sku': '', 'quantity': 1, 'unit': '', 'tp': 0.0, 'name': ''});
+        items.add(_createEmptyItem());
       });
     }
   }
@@ -1099,31 +1158,48 @@ class _CreateInvoiceState extends State<CreateInvoice>
     );
   }
 
-  void _resetForm() {
-    if (!_isDisposed && mounted) {
-      _safeSetState(() {
-        // Reset all form fields
-        items = [
-          {'sku': '', 'quantity': 1, 'unit': '', 'tp': 0.0, 'name': ''}
-        ];
-        _selectedShopId = null;
-        _selectedShop = null;
-        _discountController.text = '0';
-        _extraDiscountController.text = '0';
-      });
-      
-      // Clear form validation
-      _formKey.currentState?.reset();
-      
-      // Show confirmation
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Form has been reset'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+  Future<List<Map<String, dynamic>>> _loadStockItems() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return [];
+
+      final stockSnapshot = await FirebaseFirestore.instance
+          .collection('stock_items')
+          .where('userId', isEqualTo: userId)
+          .where('quantity', isGreaterThan: 0) // Only show items with stock
+          .get();
+
+      return stockSnapshot.docs.map((doc) {
+        final data = doc.data();
+        data['docId'] = doc.id;
+        return data;
+      }).toList();
+    } catch (e) {
+      print('Error loading stock items: $e');
+      return [];
     }
+  }
+
+  void _resetForm() {
+    _safeSetState(() {
+      _selectedShop = null;
+      _selectedShopId = null;
+      items = [_createEmptyItem()];
+      _discountController.text = '0';
+      _extraDiscountController.text = '0';
+    });
+    
+    // Clear form validation
+    _formKey.currentState?.reset();
+    
+    // Show confirmation
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Form has been reset'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   Future<void> _loadShops() async {

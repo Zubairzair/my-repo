@@ -146,7 +146,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
             const SizedBox(width: 12),
             _buildStatCard('Paid', paidInvoices.toString(), Icons.check_circle, Colors.green),
             const SizedBox(width: 12),
-            _buildStatCard('Amount', 'PKR ${totalAmount.toStringAsFixed(0)}', Icons.attach_money, Colors.purple),
+            _buildStatCard('Amount', 'PKR ${totalAmount.toStringAsFixed(0)}', Icons.money, Colors.purple),
           ],
         );
       },
@@ -160,7 +160,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
         const SizedBox(width: 12),
         _buildStatCard('Paid', '0', Icons.check_circle, Colors.green),
         const SizedBox(width: 12),
-        _buildStatCard('Amount', 'PKR 0', Icons.attach_money, Colors.purple),
+        _buildStatCard('Amount', 'PKR 0', Icons.money, Colors.purple),
       ],
     );
   }
@@ -452,8 +452,8 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
                     Expanded(
                       child: _buildInfoItem(
                         'Amount',
-                        'PKR ${total.toStringAsFixed(2)}',
-                        Icons.currency_rupee,
+                        'Rs ${total.toStringAsFixed(2)}',
+                        Icons.money,
                         Colors.green,
                       ),
                     ),

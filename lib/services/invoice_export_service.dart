@@ -210,8 +210,8 @@ class InvoiceExportService {
                       item['sku']?.toString() ?? '',
                       '$quantity',
                       item['unit']?.toString() ?? 'Pcs',
-                      'PKR ${tp.toStringAsFixed(2)}',
-                      'PKR ${total.toStringAsFixed(2)}',
+                      'Rs ${tp.toStringAsFixed(2)}',
+                      'Rs ${total.toStringAsFixed(2)}',
                     ].map((text) => pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(text))).toList(),
                   );
                 }).toList(),
@@ -233,7 +233,7 @@ class InvoiceExportService {
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
                         pw.Text('Subtotal:'),
-                        pw.Text('PKR ${((pricing['subtotal'] ?? 0.0) as double).toStringAsFixed(2)}'),
+                        pw.Text('Rs ${((pricing['subtotal'] ?? 0.0) as double).toStringAsFixed(2)}'),
                       ],
                     ),
                     if ((pricing['discount'] ?? 0.0) > 0) ...[
@@ -242,7 +242,7 @@ class InvoiceExportService {
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
                           pw.Text('Discount:'),
-                          pw.Text('-PKR ${((pricing['discount'] ?? 0.0) as double).toStringAsFixed(2)}'),
+                          pw.Text('-Rs ${((pricing['discount'] ?? 0.0) as double).toStringAsFixed(2)}'),
                         ],
                       ),
                     ],
@@ -252,7 +252,7 @@ class InvoiceExportService {
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
                           pw.Text('Extra Discount:'),
-                          pw.Text('-PKR ${((pricing['extraDiscount'] ?? 0.0) as double).toStringAsFixed(2)}'),
+                          pw.Text('-Rs ${((pricing['extraDiscount'] ?? 0.0) as double).toStringAsFixed(2)}'),
                         ],
                       ),
                     ],
@@ -261,7 +261,7 @@ class InvoiceExportService {
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
                         pw.Text('Final Total:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                        pw.Text('PKR ${((pricing['total'] ?? 0.0) as double).toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        pw.Text('Rs ${((pricing['total'] ?? 0.0) as double).toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                       ],
                     ),
                   ],
@@ -497,7 +497,7 @@ class InvoiceExportService {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text('Subtotal:', style: TextStyle(color: Colors.black)),
-                            Text('PKR ${((pricing['subtotal'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black)),
+                            Text('Rs ${((pricing['subtotal'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black)),
                           ],
                         ),
                         if ((pricing['discount'] ?? 0.0) > 0) ...[
@@ -506,7 +506,7 @@ class InvoiceExportService {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text('Discount:', style: TextStyle(color: Colors.black)),
-                              Text('-PKR ${((pricing['discount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.red)),
+                              Text('-Rs ${((pricing['discount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.red)),
                             ],
                           ),
                         ],
@@ -516,7 +516,7 @@ class InvoiceExportService {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text('Extra Discount:', style: TextStyle(color: Colors.black)),
-                              Text('-PKR ${((pricing['extraDiscount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.purple)),
+                              Text('-Rs ${((pricing['extraDiscount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.purple)),
                             ],
                           ),
                         ],
@@ -525,7 +525,7 @@ class InvoiceExportService {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text('Final Total:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
-                            Text('PKR ${((pricing['total'] ?? 0.0) as double).toStringAsFixed(2)}', 
+                            Text('Rs ${((pricing['total'] ?? 0.0) as double).toStringAsFixed(2)}', 
                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
                           ],
                         ),
@@ -661,8 +661,8 @@ class InvoiceExportService {
                         Expanded(flex: 2, child: Text('${item['sku'] ?? 'N/A'}', style: const TextStyle(color: Colors.black))),
                         Expanded(flex: 1, child: Text('${item['quantity'] ?? 0}', style: const TextStyle(color: Colors.black))),
                         Expanded(flex: 1, child: Text('${item['unit'] ?? 'Pcs'}', style: const TextStyle(color: Colors.black))),
-                        Expanded(flex: 2, child: Text('PKR ${((item['price'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black))),
-                        Expanded(flex: 2, child: Text('PKR ${(((item['quantity'] ?? 1) as int) * ((item['price'] ?? 0.0) as double)).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black))),
+                        Expanded(flex: 2, child: Text('Rs ${((item['price'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black))),
+                        Expanded(flex: 2, child: Text('Rs ${(((item['quantity'] ?? 1) as int) * ((item['price'] ?? 0.0) as double)).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black))),
                       ],
                     ),
                   );
@@ -688,7 +688,7 @@ class InvoiceExportService {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('Subtotal:', style: TextStyle(color: Colors.black)),
-                      Text('PKR ${((pricing['subtotal'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black)),
+                      Text('Rs ${((pricing['subtotal'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black)),
                     ],
                   ),
                   if ((pricing['discount'] ?? 0.0) > 0) ...[
@@ -697,7 +697,7 @@ class InvoiceExportService {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Discount:', style: TextStyle(color: Colors.black)),
-                        Text('-PKR ${((pricing['discount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.red)),
+                        Text('-Rs ${((pricing['discount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.red)),
                       ],
                     ),
                   ],
@@ -707,7 +707,7 @@ class InvoiceExportService {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Extra Discount:', style: TextStyle(color: Colors.black)),
-                        Text('-PKR ${((pricing['extraDiscount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.purple)),
+                        Text('-Rs ${((pricing['extraDiscount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.purple)),
                       ],
                     ),
                   ],
@@ -716,7 +716,7 @@ class InvoiceExportService {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('Final Total:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
-                      Text('PKR ${((pricing['total'] ?? 0.0) as double).toStringAsFixed(2)}', 
+                      Text('Rs ${((pricing['total'] ?? 0.0) as double).toStringAsFixed(2)}', 
                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
                     ],
                   ),

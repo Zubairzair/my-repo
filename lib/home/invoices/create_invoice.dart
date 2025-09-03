@@ -846,10 +846,14 @@ class _CreateInvoiceState extends State<CreateInvoice>
           borderRadius: BorderRadius.circular(16),
         ),
         child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -1062,6 +1066,7 @@ class _CreateInvoiceState extends State<CreateInvoice>
                 ),
               ),
             ],
+            ),
           ),
         ),
       ),

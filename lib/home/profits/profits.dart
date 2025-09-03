@@ -302,7 +302,7 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
                   Expanded(
                     child: _buildSummaryCard(
                       'Total Revenue',
-                      'PKR ${totalRevenue.toStringAsFixed(0)}',
+                      'Rs ${totalRevenue.toStringAsFixed(0)}',
                       Icons.trending_up,
                       Colors.blue,
                     ),
@@ -311,7 +311,7 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
                   Expanded(
                     child: _buildSummaryCard(
                       'Total Profit',
-                      'PKR ${totalProfit.toStringAsFixed(0)}',
+                      'Rs ${totalProfit.toStringAsFixed(0)}',
                       Icons.account_balance_wallet,
                       Colors.green,
                     ),
@@ -320,18 +320,15 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
               ),
               const SizedBox(height: 16),
               Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Expanded(
                     child: _buildSummaryCard(
                       '$selectedPeriod Profit',
-                      'PKR ${filteredProfit.toStringAsFixed(0)}',
+                      'Rs ${filteredProfit.toStringAsFixed(0)}',
                       Icons.calendar_today,
                       Colors.purple,
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Container(), // Empty space to maintain layout
                   ),
                 ],
               ),
@@ -351,23 +348,20 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
           Row(
             children: [
               Expanded(
-                child: _buildSummaryCard('Total Revenue', 'PKR 0', Icons.trending_up, Colors.blue),
+                child: _buildSummaryCard('Total Revenue', 'Rs 0', Icons.trending_up, Colors.blue),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _buildSummaryCard('Total Profit', 'PKR 0', Icons.account_balance_wallet, Colors.green),
+                child: _buildSummaryCard('Total Profit', 'Rs 0', Icons.account_balance_wallet, Colors.green),
               ),
             ],
           ),
           const SizedBox(height: 16),
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Expanded(
-                child: _buildSummaryCard('$selectedPeriod Profit', 'PKR 0', Icons.calendar_today, Colors.purple),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Container(), // Empty space to maintain layout
+                child: _buildSummaryCard('$selectedPeriod Profit', 'Rs 0', Icons.calendar_today, Colors.purple),
               ),
             ],
           ),
@@ -431,23 +425,7 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
   }
 
   Widget _buildProfitsList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('invoices')
-          .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return _buildEmptyState();
-        }
-
-        return _buildEmptyState(); // Always show empty state instead of profit details
-      },
-    );
+    return const SizedBox.shrink(); // Remove the message section entirely
   }
 
   Widget _buildEmptyState() {
@@ -481,17 +459,13 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
-            Flexible(
-              child: Text(
-                'Complete some paid invoices to see your profit analysis',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+            Text(
+              'Complete some paid invoices to see your profit analysis',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -593,19 +567,19 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
                   children: [
                     _buildProfitRow(
                       'Revenue:',
-                      'PKR ${total.toStringAsFixed(2)}',
+                      'Rs ${total.toStringAsFixed(2)}',
                       Colors.blue,
                     ),
                     const SizedBox(height: 8),
                     _buildProfitRow(
                       'Est. Cost:',
-                      'PKR ${estimatedCost.toStringAsFixed(2)}',
+                      'Rs ${estimatedCost.toStringAsFixed(2)}',
                       Colors.red,
                     ),
                     const Divider(height: 20),
                     _buildProfitRow(
                       'Est. Profit:',
-                      'PKR ${estimatedProfit.toStringAsFixed(2)}',
+                      'Rs ${estimatedProfit.toStringAsFixed(2)}',
                       Colors.green,
                       isTotal: true,
                     ),

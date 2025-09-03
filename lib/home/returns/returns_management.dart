@@ -133,7 +133,7 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
             const SizedBox(width: 12),
             _buildStatCard('Today', todayReturns.toString(), Icons.today, Colors.blue),
             const SizedBox(width: 12),
-            _buildStatCard('Value', 'PKR ${totalValue.toStringAsFixed(0)}', Icons.attach_money, Colors.red),
+            _buildStatCard('Value', 'Rs ${totalValue.toStringAsFixed(0)}', Icons.money, Colors.red),
           ],
         );
       },
@@ -147,7 +147,7 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
         const SizedBox(width: 12),
         _buildStatCard('Today', '0', Icons.today, Colors.blue),
         const SizedBox(width: 12),
-        _buildStatCard('Value', 'PKR 0', Icons.attach_money, Colors.red),
+        _buildStatCard('Value', 'PKR 0', Icons.money, Colors.red),
       ],
     );
   }
@@ -402,8 +402,8 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
                 Expanded(
                   child: _buildInfoItem(
                     'Unit Price',
-                    'PKR ${(returnItem['unitPrice'] as double?)?.toStringAsFixed(2) ?? '0'}',
-                    Icons.currency_rupee,
+                    'Rs ${(returnItem['unitPrice'] as double?)?.toStringAsFixed(2) ?? '0'}',
+                    Icons.money,
                     Colors.green,
                   ),
                 ),
@@ -411,7 +411,7 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
                 Expanded(
                   child: _buildInfoItem(
                     'Total',
-                    'PKR ${(returnItem['totalAmount'] as double?)?.toStringAsFixed(2) ?? '0'}',
+                    'Rs ${(returnItem['totalAmount'] as double?)?.toStringAsFixed(2) ?? '0'}',
                     Icons.account_balance_wallet,
                     Colors.red,
                   ),
@@ -652,9 +652,9 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
                     TextField(
                       controller: unitPriceController,
                       decoration: const InputDecoration(
-                        labelText: 'Unit Price (PKR) *',
+                        labelText: 'Unit Price (Rs) *',
                         border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.currency_rupee),
+                        prefixIcon: Icon(Icons.money),
                       ),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     ),

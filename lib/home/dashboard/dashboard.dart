@@ -162,12 +162,20 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
 
                         final invoices = snapshot.data!.docs;
                         final totalAmount = invoices.fold<double>(0, (sum, doc) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          return sum + (data['pricing']['total'] as double? ?? 0);
+                          try {
+                            final data = doc.data() as Map<String, dynamic>;
+                            final pricing = data['pricing'] as Map<String, dynamic>?;
+                            if (pricing == null) return sum;
+                            final total = pricing?['finalTotal'] as double? ?? 0.0;
+                            return sum + total;
+                          } catch (e) {
+                            debugPrint('Error processing invoice total: $e');
+                            return sum;
+                          }
                         });
 
                         return Text(
-                          'Total Sales: PKR ${totalAmount.toStringAsFixed(2)}',
+                          'Total Sales: Rs ${totalAmount.toStringAsFixed(2)}',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -228,7 +236,7 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
             try {
               final data = doc.data() as Map<String, dynamic>;
               final pricing = data['pricing'] as Map<String, dynamic>?;
-              return sum + (pricing?['total'] as double? ?? 0);
+              return sum + (pricing?['finalTotal'] as double? ?? 0);
             } catch (e) {
               debugPrint('Error processing invoice ${doc.id}: $e');
               return sum;
@@ -277,7 +285,7 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
                   ),
                   _buildStatCard(
                     'Total Revenue',
-                    'PKR ${_formatAmount(paidAmount)}',
+                    'Rs ${_formatAmount(paidAmount)}',
                     Icons.trending_up,
                     Colors.purple,
                   ),
@@ -326,7 +334,7 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
           children: [
             _buildStatCard('Total Invoices', '0', Icons.receipt_long, Colors.blue),
             _buildStatCard('Paid Invoices', '0', Icons.check_circle, Colors.green),
-            _buildStatCard('Total Revenue', 'PKR 0', Icons.trending_up, Colors.purple),
+            _buildStatCard('Total Revenue', 'Rs 0', Icons.trending_up, Colors.purple),
             _buildStatCard('This Month', '${DateTime.now().day}/${DateTime.now().month}', Icons.calendar_today, Colors.orange),
           ],
         );
@@ -703,7 +711,7 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
         final monthsAgo = (now.year - createdAt.year) * 12 + (now.month - createdAt.month);
         if (monthsAgo >= 0 && monthsAgo <= 5 && monthlyTotals.containsKey(monthKey)) {
           final pricing = data['pricing'] as Map<String, dynamic>?;
-          final total = pricing?['total'] as double? ?? 0.0;
+          final total = pricing?['finalTotal'] as double? ?? 0.0;
           monthlyTotals[monthKey] = (monthlyTotals[monthKey] ?? 0.0) + total;
         }
       } catch (e) {
@@ -769,7 +777,7 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
-                                    'PKR ${_formatChartAmount(entry.value)}',
+                                    'Rs ${_formatChartAmount(entry.value)}',
                                     style: TextStyle(
                                       fontSize: fontSize,
                                       fontWeight: FontWeight.w500,

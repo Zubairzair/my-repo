@@ -146,6 +146,7 @@ class InvoiceExportService {
     Map<String, dynamic> pricing,
   ) async {
     try {
+      // Show loading dialog
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -158,65 +159,84 @@ class InvoiceExportService {
       );
 
       final pdf = pw.Document();
-      pdf.addPage(pw.Page(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(32),
-        build: (pw.Context context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Center(child: pw.Text('Al Badar Traders', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold))),
-            pw.SizedBox(height: 20),
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(32),
+          build: (pw.Context context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                // Header
+                pw.Center(
+                  child: pw.Text(
+                    'Al Badar Traders',
+                    style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+                
+                // Invoice details
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('Shop: ${customerData['name'] ?? 'N/A'}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text('Address: ${customerData['address'] ?? 'N/A'}'),
-                    if (customerData['phone'] != null) pw.Text('Phone: ${customerData['phone']}'),
-                    if (customerData['email'] != null) pw.Text('Email: ${customerData['email']}'),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Shop: ${customerData['name'] ?? 'N/A'}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        pw.Text('Address: ${customerData['address'] ?? 'N/A'}'),
+                        if (customerData['phone'] != null) pw.Text('Phone: ${customerData['phone']}'),
+                        if (customerData['email'] != null) pw.Text('Email: ${customerData['email']}'),
+                      ],
+                    ),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                      children: [
+                        pw.Text('Date: ${invoiceData['date'] ?? DateTime.now().toString().substring(0, 10)}'),
+                        pw.Text('Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      ],
+                    ),
                   ],
                 ),
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                pw.SizedBox(height: 30),
+                
+                // Items table
+                pw.Table(
+                  border: pw.TableBorder.all(color: PdfColors.grey400),
                   children: [
-                    pw.Text('Date: ${invoiceData['date'] ?? DateTime.now().toString().substring(0, 10)}'),
-                    pw.Text('Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    // Header row
+                    pw.TableRow(
+                      decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                      children: ['S#', 'Item Name', 'Qty', 'Unit', 'TP', 'Total']
+                          .map((text) => pw.Padding(
+                                padding: const pw.EdgeInsets.all(8),
+                                child: pw.Text(text, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                              ))
+                          .toList(),
+                    ),
+                    ...items.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final item = entry.value;
+                      final tp = (item['tp'] ?? 0.0) as double;
+                      final quantity = (item['quantity'] ?? 1) as int;
+                      final total = tp * quantity;
+                      return pw.TableRow(
+                        children: [
+                          '${index + 1}',
+                          item['name']?.toString() ?? 'N/A',
+                          '$quantity',
+                          item['unit']?.toString() ?? 'Pcs',
+                          'Rs ${tp.toStringAsFixed(2)}',
+                          'Rs ${total.toStringAsFixed(2)}',
+                        ].map((text) => pw.Padding(
+                          padding: const pw.EdgeInsets.all(8), 
+                          child: pw.Text(text, style: pw.TextStyle(fontSize: 9))
+                        )).toList(),
+                      );
+                    }).toList(),
                   ],
                 ),
-              ],
-            ),
-            pw.SizedBox(height: 30),
-            pw.Table(
-              border: pw.TableBorder.all(color: PdfColors.grey400),
-              children: [
-                pw.TableRow(
-                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
-                  children: ['Barcode', 'S#', 'SKU', 'Qty', 'Unit', 'TP', 'Total']
-                      .map((text) => pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(text, style: pw.TextStyle(fontWeight: pw.FontWeight.bold))))
-                      .toList(),
-                ),
-                ...items.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  final tp = (item['tp'] ?? 0.0) as double;
-                  final quantity = (item['quantity'] ?? 1) as int;
-                  final total = tp * quantity;
-                  return pw.TableRow(
-                    children: [
-                      item['barcode']?.toString() ?? 'N/A',
-                      '${index + 1}',
-                      item['sku']?.toString() ?? '',
-                      '$quantity',
-                      item['unit']?.toString() ?? 'Pcs',
-                      'Rs ${tp.toStringAsFixed(2)}',
-                      'Rs ${total.toStringAsFixed(2)}',
-                    ].map((text) => pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(text))).toList(),
-                  );
-                }).toList(),
-              ],
-            ),
             pw.SizedBox(height: 30),
             pw.Align(
               alignment: pw.Alignment.centerRight,
@@ -269,20 +289,28 @@ class InvoiceExportService {
               ),
             ),
           ],
-        ),
-      ));
+        );
+      }),
+    );
 
       final output = await getTemporaryDirectory();
       final file = File('${output.path}/invoice_${invoiceData['invoiceNumber'] ?? DateTime.now().millisecondsSinceEpoch}.pdf');
       await file.writeAsBytes(await pdf.save());
+      
       if (context.mounted) {
-        Navigator.pop(context);
+        Navigator.pop(context); // Close loading dialog
         await Share.shareXFiles([XFile(file.path)], text: 'Invoice PDF');
       }
     } catch (e) {
+      print('Error generating PDF: $e');
       if (context.mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error generating PDF: ${e.toString()}'), backgroundColor: Colors.red));
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating PDF: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }

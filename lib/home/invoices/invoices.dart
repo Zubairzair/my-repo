@@ -393,7 +393,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
           ],
         ),
         child: InkWell(
-          onTap: () => _showInvoiceDetails(invoice),
+          onTap: () => _showInvoiceDetails(invoice, docId),
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -522,7 +522,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
     );
   }
 
-  void _showInvoiceDetails(Map<String, dynamic> invoice) {
+  void _showInvoiceDetails(Map<String, dynamic> invoice, String docId) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -555,7 +555,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
                   child: SingleChildScrollView(
                     controller: scrollController,
                     padding: const EdgeInsets.all(24),
-                    child: _buildInvoiceDetailsContent(invoice),
+                    child: _buildInvoiceDetailsContent(invoice, docId),
                   ),
                 ),
               ],
@@ -566,7 +566,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
     );
   }
 
-  Widget _buildInvoiceDetailsContent(Map<String, dynamic> invoice) {
+  Widget _buildInvoiceDetailsContent(Map<String, dynamic> invoice, String docId) {
     try {
       final items = List<Map<String, dynamic>>.from(invoice['items'] ?? []);
       final pricing = invoice['pricing'] as Map<String, dynamic>? ?? {};

@@ -365,6 +365,30 @@ class _CreateInvoiceState extends State<CreateInvoice>
               
               final stockItems = snapshot.data ?? [];
               
+              if (snapshot.hasError) {
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    border: Border.all(color: Colors.red.shade200),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text('Error loading stock: ${snapshot.error}'),
+                );
+              }
+              
+              if (stockItems.isEmpty) {
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    border: Border.all(color: Colors.orange.shade200),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text('No stock items available. Add items to stock first.'),
+                );
+              }
+              
               return DropdownButtonFormField<String>(
                 value: items[index]['stockItemId'],
                 decoration: InputDecoration(
@@ -1161,19 +1185,29 @@ class _CreateInvoiceState extends State<CreateInvoice>
   Future<List<Map<String, dynamic>>> _loadStockItems() async {
     try {
       final userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId == null) return [];
+      if (userId == null) {
+        print('User not authenticated');
+        return [];
+      }
 
+      print('Loading stock items for user: $userId');
+      
       final stockSnapshot = await FirebaseFirestore.instance
           .collection('stock_items')
           .where('userId', isEqualTo: userId)
-          .where('quantity', isGreaterThan: 0) // Only show items with stock
-          .get();
+          .get(); // Remove quantity filter to see all items first
 
-      return stockSnapshot.docs.map((doc) {
+      print('Found ${stockSnapshot.docs.length} stock items');
+      
+      final stockItems = stockSnapshot.docs.map((doc) {
         final data = doc.data();
         data['docId'] = doc.id;
+        print('Stock item: ${data['name']} - Quantity: ${data['quantity']}');
         return data;
-      }).toList();
+      }).where((item) => (item['quantity'] as int? ?? 0) > 0).toList(); // Filter in code for debugging
+      
+      print('Filtered to ${stockItems.length} items with stock > 0');
+      return stockItems;
     } catch (e) {
       print('Error loading stock items: $e');
       return [];

@@ -268,7 +268,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
             try {
               final invoice = invoices[index].data() as Map<String, dynamic>?;
               if (invoice == null) return const SizedBox.shrink();
-              return _buildInvoiceCard(invoice);
+              return _buildInvoiceCard(invoice, invoices[index].id);
             } catch (e) {
               print('Error rendering invoice: $e');
               return const SizedBox.shrink();
@@ -360,7 +360,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
     );
   }
 
-  Widget _buildInvoiceCard(Map<String, dynamic> invoice) {
+  Widget _buildInvoiceCard(Map<String, dynamic> invoice, String docId) {
     try {
       final createdAt = DateTime.parse(invoice['createdAt'] ?? DateTime.now().toIso8601String());
       final dueDate = DateTime.parse(invoice['dueDate'] ?? DateTime.now().toIso8601String());
@@ -683,7 +683,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
                   onPressed: () {
                     Navigator.pop(context);
                     final displayName = shop?['name'] ?? customer['name'] ?? 'Unknown Customer';
-                    _deleteInvoice(invoice['id'] ?? '', displayName);
+                    _deleteInvoice(docId, displayName);
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.red,
@@ -697,7 +697,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);
-                    _shareInvoice(invoice);
+                    _shareInvoice(invoice, docId);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueAccent,
@@ -922,7 +922,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
     );
   }
 
-  Future<void> _shareInvoice(Map<String, dynamic> invoice) async {
+  Future<void> _shareInvoice(Map<String, dynamic> invoice, String docId) async {
     try {
       // Prepare data for export service
       final shop = invoice['shop'] as Map<String, dynamic>?;

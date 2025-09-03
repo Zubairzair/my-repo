@@ -1,8 +1,5 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pdf/pdf.dart';
@@ -11,7 +8,6 @@ import 'package:excel/excel.dart' as xl;
 import 'package:screenshot/screenshot.dart';
 
 class InvoiceExportService {
-  static final ScreenshotController _screenshotController = ScreenshotController();
 
   // Show export options dialog
   static Future<void> showExportDialog(
@@ -107,7 +103,7 @@ class InvoiceExportService {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: color, size: 24),
@@ -150,239 +146,144 @@ class InvoiceExportService {
     Map<String, dynamic> pricing,
   ) async {
     try {
-      // Show loading dialog
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => const AlertDialog(
           content: Row(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Text('Generating PDF...'),
-            ],
+            children: [CircularProgressIndicator(), SizedBox(width: 16), Text('Generating PDF...')],
           ),
         ),
       );
 
       final pdf = pw.Document();
-      
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(32),
-          build: (pw.Context context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
+      pdf.addPage(pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context context) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Center(child: pw.Text('Al Badar Traders', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold))),
+            pw.SizedBox(height: 20),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                // Al Badar Traders Header
-                pw.Center(
-                  child: pw.Text(
-                    'Al Badar Traders',
-                    style: pw.TextStyle(
-                      fontSize: 24,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                ),
-                pw.SizedBox(height: 20),
-                
-                // Shop and Invoice Details
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text('Shop: ${customerData['name'] ?? 'N/A'}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                        pw.Text('Address: ${customerData['address'] ?? 'N/A'}'),
-                        if (customerData['phone'] != null) pw.Text('Phone: ${customerData['phone']}'),
-                        if (customerData['email'] != null) pw.Text('Email: ${customerData['email']}'),
-                      ],
-                    ),
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        pw.Text('Date: ${invoiceData['date'] ?? DateTime.now().toString().substring(0, 10)}'),
-                        pw.Text('Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      ],
-                    ),
+                    pw.Text('Shop: ${customerData['name'] ?? 'N/A'}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    pw.Text('Address: ${customerData['address'] ?? 'N/A'}'),
+                    if (customerData['phone'] != null) pw.Text('Phone: ${customerData['phone']}'),
+                    if (customerData['email'] != null) pw.Text('Email: ${customerData['email']}'),
                   ],
                 ),
-                pw.SizedBox(height: 30),
-                
-                // Items Table
-                pw.Table(
-                  border: pw.TableBorder.all(color: PdfColors.grey400),
-                  columnWidths: {
-                    0: const pw.FlexColumnWidth(2), // Barcode
-                    1: const pw.FlexColumnWidth(1), // Serial Number
-                    2: const pw.FlexColumnWidth(2), // SKU
-                    3: const pw.FlexColumnWidth(1), // Quantity
-                    4: const pw.FlexColumnWidth(1), // Unit
-                    5: const pw.FlexColumnWidth(2), // TP
-                    6: const pw.FlexColumnWidth(2), // Total
-                  },
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
-                    // Table Header
-                    pw.TableRow(
-                      decoration: const pw.BoxDecoration(color: PdfColors.grey200),
-                      children: [
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('Barcode', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('S#', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('SKU', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('Qty', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('Unit', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('TP', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('Total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                        ),
-                      ],
-                    ),
-                    // Table Rows
-                    ...items.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final item = entry.value;
-                      final tp = (item['tp'] ?? 0.0) as double;
-                      final quantity = (item['quantity'] ?? 1) as int;
-                      final total = tp * quantity;
-                      
-                      return pw.TableRow(
-                        children: [
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(8),
-                            child: pw.Text(item['barcode']?.toString() ?? 'N/A'),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(8),
-                            child: pw.Text('${index + 1}'),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(8),
-                            child: pw.Text(item['sku']?.toString() ?? ''),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(8),
-                            child: pw.Text('$quantity'),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(8),
-                            child: pw.Text(item['unit']?.toString() ?? 'Pcs'),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(8),
-                            child: pw.Text('Rs ${tp.toStringAsFixed(2)}'),
-                          ),
-                          pw.Padding(
-                            padding: const pw.EdgeInsets.all(8),
-                            child: pw.Text('Rs ${total.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                          ),
-                        ],
-                      );
-                    }).toList(),
+                    pw.Text('Date: ${invoiceData['date'] ?? DateTime.now().toString().substring(0, 10)}'),
+                    pw.Text('Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                   ],
-                ),
-                pw.SizedBox(height: 30),
-                
-                // Pricing Summary
-                pw.Align(
-                  alignment: pw.Alignment.centerRight,
-                  child: pw.Container(
-                    width: 250,
-                    padding: const pw.EdgeInsets.all(16),
-                    decoration: pw.BoxDecoration(
-                      border: pw.Border.all(color: PdfColors.grey400),
-                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-                    ),
-                    child: pw.Column(
-                      children: [
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Text('Subtotal:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                            pw.Text('Rs ${(pricing['subtotal'] as double).toStringAsFixed(2)}'),
-                          ],
-                        ),
-                        if ((pricing['discount'] as double) > 0) ...[
-                          pw.SizedBox(height: 8),
-                          pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                            children: [
-                              pw.Text('Discount:'),
-                              pw.Text('-Rs ${(pricing['discount'] as double).toStringAsFixed(2)}'),
-                            ],
-                          ),
-                        ],
-                        if ((pricing['extraDiscount'] as double) > 0) ...[
-                          pw.SizedBox(height: 8),
-                          pw.Row(
-                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                            children: [
-                              pw.Text('Extra Discount:'),
-                              pw.Text('-Rs ${(pricing['extraDiscount'] as double).toStringAsFixed(2)}'),
-                            ],
-                          ),
-                        ],
-                        pw.Divider(),
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Text('Final Total:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                            pw.Text('Rs ${(pricing['total'] as double).toStringAsFixed(2)}', 
-                                   style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ],
-            );
-          },
+            ),
+            pw.SizedBox(height: 30),
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey400),
+              children: [
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                  children: ['Barcode', 'S#', 'SKU', 'Qty', 'Unit', 'TP', 'Total']
+                      .map((text) => pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(text, style: pw.TextStyle(fontWeight: pw.FontWeight.bold))))
+                      .toList(),
+                ),
+                ...items.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final item = entry.value;
+                  final tp = (item['tp'] ?? 0.0) as double;
+                  final quantity = (item['quantity'] ?? 1) as int;
+                  final total = tp * quantity;
+                  return pw.TableRow(
+                    children: [
+                      item['barcode']?.toString() ?? 'N/A',
+                      '${index + 1}',
+                      item['sku']?.toString() ?? '',
+                      '$quantity',
+                      item['unit']?.toString() ?? 'Pcs',
+                      'PKR ${tp.toStringAsFixed(2)}',
+                      'PKR ${total.toStringAsFixed(2)}',
+                    ].map((text) => pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(text))).toList(),
+                  );
+                }).toList(),
+              ],
+            ),
+            pw.SizedBox(height: 30),
+            pw.Align(
+              alignment: pw.Alignment.centerRight,
+              child: pw.Container(
+                width: 200,
+                padding: const pw.EdgeInsets.all(16),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey400),
+                  borderRadius: pw.BorderRadius.circular(8),
+                ),
+                child: pw.Column(
+                  children: [
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('Subtotal:'),
+                        pw.Text('PKR ${((pricing['subtotal'] ?? 0.0) as double).toStringAsFixed(2)}'),
+                      ],
+                    ),
+                    if ((pricing['discount'] ?? 0.0) > 0) ...[
+                      pw.SizedBox(height: 8),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('Discount:'),
+                          pw.Text('-PKR ${((pricing['discount'] ?? 0.0) as double).toStringAsFixed(2)}'),
+                        ],
+                      ),
+                    ],
+                    if ((pricing['extraDiscount'] ?? 0.0) > 0) ...[
+                      pw.SizedBox(height: 8),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('Extra Discount:'),
+                          pw.Text('-PKR ${((pricing['extraDiscount'] ?? 0.0) as double).toStringAsFixed(2)}'),
+                        ],
+                      ),
+                    ],
+                    pw.Container(height: 1, color: PdfColors.grey400, margin: const pw.EdgeInsets.symmetric(vertical: 8)),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('Final Total:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        pw.Text('PKR ${((pricing['total'] ?? 0.0) as double).toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-      );
+      ));
 
-      // Save PDF to temporary directory
       final output = await getTemporaryDirectory();
       final file = File('${output.path}/invoice_${invoiceData['invoiceNumber'] ?? DateTime.now().millisecondsSinceEpoch}.pdf');
       await file.writeAsBytes(await pdf.save());
-
-      // Close loading dialog
-      Navigator.pop(context);
-
-      // Share the file
-      await Share.shareXFiles([XFile(file.path)], text: 'Invoice PDF');
-
+      if (context.mounted) {
+        Navigator.pop(context);
+        await Share.shareXFiles([XFile(file.path)], text: 'Invoice PDF');
+      }
     } catch (e) {
-      // Close loading dialog if open
-      Navigator.pop(context);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error generating PDF: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error generating PDF: ${e.toString()}'), backgroundColor: Colors.red));
+      }
     }
   }
 
@@ -395,66 +296,32 @@ class InvoiceExportService {
     Map<String, dynamic> pricing,
   ) async {
     try {
-      // Show loading dialog
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => const AlertDialog(
           content: Row(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Text('Generating Excel...'),
-            ],
+            children: [CircularProgressIndicator(), SizedBox(width: 16), Text('Generating Excel...')],
           ),
         ),
       );
 
-      var excel = Excel.createExcel();
-      Sheet sheetObject = excel['Invoice'];
+      var excel = xl.Excel.createExcel();
+      xl.Sheet sheetObject = excel['Invoice'];
       
-      // Al Badar Traders Header
-      sheetObject.cell(CellIndex.indexByString("A1")).value = const TextCellValue('Al Badar Traders');
-      sheetObject.cell(CellIndex.indexByString("A1")).cellStyle = CellStyle(
-        bold: true,
-        fontSize: 16,
-        horizontalAlign: HorizontalAlign.Center,
-      );
-      sheetObject.merge(CellIndex.indexByString("A1"), CellIndex.indexByString("G1"));
+      sheetObject.cell(xl.CellIndex.indexByString("A1")).value = 'Al Badar Traders';
+      sheetObject.cell(xl.CellIndex.indexByString("A3")).value = 'Shop: ${customerData['name'] ?? 'N/A'}';
+      sheetObject.cell(xl.CellIndex.indexByString("A4")).value = 'Address: ${customerData['address'] ?? 'N/A'}';
+      sheetObject.cell(xl.CellIndex.indexByString("E3")).value = 'Date: ${invoiceData['date'] ?? DateTime.now().toString().substring(0, 10)}';
+      sheetObject.cell(xl.CellIndex.indexByString("E4")).value = 'Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}';
       
-      // Shop and Invoice Details
-      sheetObject.cell(CellIndex.indexByString("A3")).value = TextCellValue('Shop: ${customerData['name'] ?? 'N/A'}');
-      sheetObject.cell(CellIndex.indexByString("A4")).value = TextCellValue('Address: ${customerData['address'] ?? 'N/A'}');
-      if (customerData['phone'] != null) {
-        sheetObject.cell(CellIndex.indexByString("A5")).value = TextCellValue('Phone: ${customerData['phone']}');
-      }
-      if (customerData['email'] != null) {
-        sheetObject.cell(CellIndex.indexByString("A6")).value = TextCellValue('Email: ${customerData['email']}');
-      }
-      
-      sheetObject.cell(CellIndex.indexByString("E3")).value = TextCellValue('Date: ${invoiceData['date'] ?? DateTime.now().toString().substring(0, 10)}');
-      sheetObject.cell(CellIndex.indexByString("E4")).value = TextCellValue('Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}');
-      
-      // Table Headers (starting from row 8)
       int headerRow = 8;
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: headerRow)).value = const TextCellValue('Barcode');
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: headerRow)).value = const TextCellValue('S#');
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: headerRow)).value = const TextCellValue('SKU');
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: headerRow)).value = const TextCellValue('Quantity');
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: headerRow)).value = const TextCellValue('Unit');
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: headerRow)).value = const TextCellValue('TP');
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: headerRow)).value = const TextCellValue('Total');
-      
-      // Style headers
-      for (int col = 0; col <= 6; col++) {
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: headerRow)).cellStyle = CellStyle(
-          bold: true,
-          backgroundColorHex: ExcelColor.grey25,
-        );
+      List<String> headers = ['Barcode', 'S#', 'SKU', 'Quantity', 'Unit', 'TP', 'Total'];
+      for (int col = 0; col < headers.length; col++) {
+        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: headerRow)).value = headers[col];
       }
       
-      // Add items data
       for (int i = 0; i < items.length; i++) {
         final item = items[i];
         final rowIndex = headerRow + 1 + i;
@@ -462,66 +329,55 @@ class InvoiceExportService {
         final quantity = (item['quantity'] ?? 1) as int;
         final total = tp * quantity;
         
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value = TextCellValue(item['barcode']?.toString() ?? 'N/A');
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value = IntCellValue(i + 1);
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value = TextCellValue(item['sku']?.toString() ?? '');
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value = IntCellValue(quantity);
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value = TextCellValue(item['unit']?.toString() ?? 'Pcs');
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value = DoubleCellValue(tp);
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value = DoubleCellValue(total);
+        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value = item['barcode']?.toString() ?? 'N/A';
+        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value = i + 1;
+        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value = item['sku']?.toString() ?? '';
+        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value = quantity;
+        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value = item['unit']?.toString() ?? 'Pcs';
+        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value = tp;
+        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value = total;
       }
-      
-      // Pricing Summary (starting after items)
+
+      // Add pricing summary
       int summaryStartRow = headerRow + items.length + 3;
+      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: summaryStartRow)).value = 'Subtotal:';
+      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: summaryStartRow)).value = (pricing['subtotal'] ?? 0.0) as double;
       
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: summaryStartRow)).value = const TextCellValue('Subtotal:');
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: summaryStartRow)).value = DoubleCellValue(pricing['subtotal'] as double);
-      
-      if ((pricing['discount'] as double) > 0) {
+      if ((pricing['discount'] ?? 0.0) > 0) {
         summaryStartRow++;
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: summaryStartRow)).value = const TextCellValue('Discount:');
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: summaryStartRow)).value = DoubleCellValue(-(pricing['discount'] as double));
+        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: summaryStartRow)).value = 'Discount:';
+        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: summaryStartRow)).value = -((pricing['discount'] ?? 0.0) as double);
       }
       
-      if ((pricing['extraDiscount'] as double) > 0) {
+      if ((pricing['extraDiscount'] ?? 0.0) > 0) {
         summaryStartRow++;
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: summaryStartRow)).value = const TextCellValue('Extra Discount:');
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: summaryStartRow)).value = DoubleCellValue(-(pricing['extraDiscount'] as double));
+        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: summaryStartRow)).value = 'Extra Discount:';
+        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: summaryStartRow)).value = -((pricing['extraDiscount'] ?? 0.0) as double);
       }
       
       summaryStartRow++;
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: summaryStartRow)).value = const TextCellValue('Final Total:');
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: summaryStartRow)).value = DoubleCellValue(pricing['total'] as double);
-      
-      // Style final total
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: summaryStartRow)).cellStyle = CellStyle(bold: true);
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: summaryStartRow)).cellStyle = CellStyle(bold: true);
+      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: summaryStartRow)).value = 'Final Total:';
+      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: summaryStartRow)).value = (pricing['total'] ?? 0.0) as double;
 
-      // Save Excel file
       final output = await getTemporaryDirectory();
       final file = File('${output.path}/invoice_${invoiceData['invoiceNumber'] ?? DateTime.now().millisecondsSinceEpoch}.xlsx');
-      await file.writeAsBytes(excel.save()!);
-
-      // Close loading dialog
-      Navigator.pop(context);
-
-      // Share the file
-      await Share.shareXFiles([XFile(file.path)], text: 'Invoice Excel');
-
+      List<int>? fileBytes = excel.save();
+      if (fileBytes != null) {
+        await file.writeAsBytes(fileBytes);
+      }
+      if (context.mounted) {
+        Navigator.pop(context);
+        await Share.shareXFiles([XFile(file.path)], text: 'Invoice Excel');
+      }
     } catch (e) {
-      // Close loading dialog if open
-      Navigator.pop(context);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error generating Excel: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error generating Excel: ${e.toString()}'), backgroundColor: Colors.red));
+      }
     }
   }
 
-  // Export as Image (Screenshot)
+  // Export as Image
   static Future<void> _exportToImage(
     BuildContext context,
     Map<String, dynamic> invoiceData,
@@ -530,229 +386,177 @@ class InvoiceExportService {
     Map<String, dynamic> pricing,
   ) async {
     try {
-      // Show loading dialog
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) => const AlertDialog(
           content: Row(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Text('Generating Image...'),
-            ],
+            children: [CircularProgressIndicator(), SizedBox(width: 16), Text('Generating Image...')],
           ),
         ),
       );
 
-      // Create invoice widget for screenshot
-      final invoiceWidget = RepaintBoundary(
-        child: Container(
-          width: 800,
-          padding: const EdgeInsets.all(32),
-          color: Colors.white,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Al Badar Traders Header
-              Center(
-                child: Text(
-                  'Al Badar Traders',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade800,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              
-              // Shop and Invoice Details
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Shop: ${customerData['name'] ?? 'N/A'}', 
-                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text('Address: ${customerData['address'] ?? 'N/A'}', 
-                           style: const TextStyle(fontSize: 14)),
-                      if (customerData['phone'] != null)
-                        Text('Phone: ${customerData['phone']}', 
-                             style: const TextStyle(fontSize: 14)),
-                      if (customerData['email'] != null)
-                        Text('Email: ${customerData['email']}', 
-                             style: const TextStyle(fontSize: 14)),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('Date: ${invoiceData['date'] ?? DateTime.now().toString().substring(0, 10)}', 
-                           style: const TextStyle(fontSize: 14)),
-                      Text('Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}', 
-                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              
-              // Items Table
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade400),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
+      final invoiceWidget = MaterialApp(
+        home: Scaffold(
+          backgroundColor: Colors.white,
+          body: Container(
+            width: 800,
+            padding: const EdgeInsets.all(32),
+            color: Colors.white,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(child: Text('Al Badar Traders', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blue.shade800))),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Table Header
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(8),
-                          topRight: Radius.circular(8),
-                        ),
-                      ),
-                      child: const Row(
-                        children: [
-                          Expanded(flex: 2, child: Text('Barcode', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                          Expanded(flex: 1, child: Text('S#', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                          Expanded(flex: 2, child: Text('SKU', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                          Expanded(flex: 1, child: Text('Qty', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                          Expanded(flex: 1, child: Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                          Expanded(flex: 2, child: Text('TP', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                          Expanded(flex: 2, child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                        ],
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Shop: ${customerData['name'] ?? 'N/A'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text('Address: ${customerData['address'] ?? 'N/A'}', style: const TextStyle(fontSize: 14)),
+                        if (customerData['phone'] != null) Text('Phone: ${customerData['phone']}', style: const TextStyle(fontSize: 14)),
+                        if (customerData['email'] != null) Text('Email: ${customerData['email']}', style: const TextStyle(fontSize: 14)),
+                      ],
                     ),
-                    // Table Rows
-                    ...items.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final item = entry.value;
-                      final tp = (item['tp'] ?? 0.0) as double;
-                      final quantity = (item['quantity'] ?? 1) as int;
-                      final total = tp * quantity;
-                      
-                      return Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          border: Border(
-                            top: BorderSide(color: Colors.grey.shade300),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(flex: 2, child: Text(item['barcode']?.toString() ?? 'N/A', style: const TextStyle(fontSize: 11))),
-                            Expanded(flex: 1, child: Text('${index + 1}', style: const TextStyle(fontSize: 11))),
-                            Expanded(flex: 2, child: Text(item['sku']?.toString() ?? '', style: const TextStyle(fontSize: 11))),
-                            Expanded(flex: 1, child: Text('$quantity', style: const TextStyle(fontSize: 11))),
-                            Expanded(flex: 1, child: Text(item['unit']?.toString() ?? 'Pcs', style: const TextStyle(fontSize: 11))),
-                            Expanded(flex: 2, child: Text('Rs ${tp.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
-                            Expanded(flex: 2, child: Text('Rs ${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                          ],
-                        ),
-                      );
-                    }).toList(),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('Date: ${invoiceData['date'] ?? DateTime.now().toString().substring(0, 10)}', style: const TextStyle(fontSize: 14)),
+                        Text('Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      ],
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 32),
-              
-              // Pricing Summary
-              Align(
-                alignment: Alignment.centerRight,
-                child: Container(
-                  width: 300,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.shade200),
-                  ),
+                const SizedBox(height: 32),
+                Container(
+                  decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(8)),
                   child: Column(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Subtotal:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                          Text('Rs ${(pricing['subtotal'] as double).toStringAsFixed(2)}', style: const TextStyle(fontSize: 14)),
-                        ],
-                      ),
-                      if ((pricing['discount'] as double) > 0) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: const BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
+                        ),
+                        child: const Row(
                           children: [
-                            const Text('Discount:', style: TextStyle(color: Colors.red, fontSize: 14)),
-                            Text('-Rs ${(pricing['discount'] as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.red, fontSize: 14)),
+                            Expanded(flex: 2, child: Text('Barcode', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                            Expanded(flex: 1, child: Text('S#', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                            Expanded(flex: 2, child: Text('SKU', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                            Expanded(flex: 1, child: Text('Qty', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                            Expanded(flex: 1, child: Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                            Expanded(flex: 2, child: Text('TP', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                            Expanded(flex: 2, child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                           ],
                         ),
-                      ],
-                      if ((pricing['extraDiscount'] as double) > 0) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Extra Discount:', style: TextStyle(color: Colors.red, fontSize: 14)),
-                            Text('-Rs ${(pricing['extraDiscount'] as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.red, fontSize: 14)),
-                          ],
-                        ),
-                      ],
-                      const Divider(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('Final Total:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          Text('Rs ${(pricing['total'] as double).toStringAsFixed(2)}', 
-                               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green)),
-                        ],
                       ),
+                      ...items.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final item = entry.value;
+                        final tp = (item['tp'] ?? 0.0) as double;
+                        final quantity = (item['quantity'] ?? 1) as int;
+                        final total = tp * quantity;
+                        
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.grey.shade300))),
+                          child: Row(
+                            children: [
+                              Expanded(flex: 2, child: Text(item['barcode']?.toString() ?? 'N/A', style: const TextStyle(fontSize: 11))),
+                              Expanded(flex: 1, child: Text('${index + 1}', style: const TextStyle(fontSize: 11))),
+                              Expanded(flex: 2, child: Text(item['sku']?.toString() ?? '', style: const TextStyle(fontSize: 11))),
+                              Expanded(flex: 1, child: Text('$quantity', style: const TextStyle(fontSize: 11))),
+                              Expanded(flex: 1, child: Text(item['unit']?.toString() ?? 'Pcs', style: const TextStyle(fontSize: 11))),
+                              Expanded(flex: 2, child: Text('PKR ${tp.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
+                              Expanded(flex: 2, child: Text('PKR ${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                            ],
+                          ),
+                        );
+                      }).toList(),
                     ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    width: 250,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Subtotal:', style: TextStyle(color: Colors.black)),
+                            Text('PKR ${((pricing['subtotal'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black)),
+                          ],
+                        ),
+                        if ((pricing['discount'] ?? 0.0) > 0) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Discount:', style: TextStyle(color: Colors.black)),
+                              Text('-PKR ${((pricing['discount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ],
+                        if ((pricing['extraDiscount'] ?? 0.0) > 0) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Extra Discount:', style: TextStyle(color: Colors.black)),
+                              Text('-PKR ${((pricing['extraDiscount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.purple)),
+                            ],
+                          ),
+                        ],
+                        const Divider(color: Colors.grey),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Final Total:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
+                            Text('PKR ${((pricing['total'] ?? 0.0) as double).toStringAsFixed(2)}', 
+                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
 
-      // Create screenshot controller
       ScreenshotController screenshotController = ScreenshotController();
-      
-      // Capture screenshot
       final imageBytes = await screenshotController.captureFromWidget(
         invoiceWidget,
         pixelRatio: 2.0,
+        context: context,
       );
-
-      // Save image to temporary directory
       final output = await getTemporaryDirectory();
       final file = File('${output.path}/invoice_${invoiceData['invoiceNumber'] ?? DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(imageBytes);
-
-      // Close loading dialog
-      Navigator.pop(context);
-
-      // Share the file
-      await Share.shareXFiles([XFile(file.path)], text: 'Invoice Image');
-
+      if (context.mounted) {
+        Navigator.pop(context);
+        await Share.shareXFiles([XFile(file.path)], text: 'Invoice Image');
+      }
     } catch (e) {
-      // Close loading dialog if open
-      Navigator.pop(context);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error generating image: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error generating image: ${e.toString()}'), backgroundColor: Colors.red));
+      }
     }
   }
 
@@ -857,8 +661,8 @@ class InvoiceExportService {
                         Expanded(flex: 2, child: Text('${item['sku'] ?? 'N/A'}', style: const TextStyle(color: Colors.black))),
                         Expanded(flex: 1, child: Text('${item['quantity'] ?? 0}', style: const TextStyle(color: Colors.black))),
                         Expanded(flex: 1, child: Text('${item['unit'] ?? 'Pcs'}', style: const TextStyle(color: Colors.black))),
-                        Expanded(flex: 2, child: Text('Rs ${((item['price'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black))),
-                        Expanded(flex: 2, child: Text('Rs ${(((item['quantity'] ?? 1) as int) * ((item['price'] ?? 0.0) as double)).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black))),
+                        Expanded(flex: 2, child: Text('PKR ${((item['price'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black))),
+                        Expanded(flex: 2, child: Text('PKR ${(((item['quantity'] ?? 1) as int) * ((item['price'] ?? 0.0) as double)).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black))),
                       ],
                     ),
                   );
@@ -884,7 +688,7 @@ class InvoiceExportService {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('Subtotal:', style: TextStyle(color: Colors.black)),
-                      Text('Rs ${((pricing['subtotal'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black)),
+                      Text('PKR ${((pricing['subtotal'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black)),
                     ],
                   ),
                   if ((pricing['discount'] ?? 0.0) > 0) ...[
@@ -893,7 +697,7 @@ class InvoiceExportService {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Discount:', style: TextStyle(color: Colors.black)),
-                        Text('-Rs ${((pricing['discount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.red)),
+                        Text('-PKR ${((pricing['discount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.red)),
                       ],
                     ),
                   ],
@@ -903,7 +707,7 @@ class InvoiceExportService {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Extra Discount:', style: TextStyle(color: Colors.black)),
-                        Text('-Rs ${((pricing['extraDiscount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.purple)),
+                        Text('-PKR ${((pricing['extraDiscount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.purple)),
                       ],
                     ),
                   ],
@@ -912,7 +716,7 @@ class InvoiceExportService {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('Final Total:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
-                      Text('Rs ${((pricing['total'] ?? 0.0) as double).toStringAsFixed(2)}', 
+                      Text('PKR ${((pricing['total'] ?? 0.0) as double).toStringAsFixed(2)}', 
                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
                     ],
                   ),

@@ -146,7 +146,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
             const SizedBox(width: 12),
             _buildStatCard('Paid', paidInvoices.toString(), Icons.check_circle, Colors.green),
             const SizedBox(width: 12),
-            _buildStatCard('Amount', 'Rs ${totalAmount.toStringAsFixed(0)}', Icons.attach_money, Colors.purple),
+            _buildStatCard('Amount', 'PKR ${totalAmount.toStringAsFixed(0)}', Icons.attach_money, Colors.purple),
           ],
         );
       },
@@ -160,7 +160,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
         const SizedBox(width: 12),
         _buildStatCard('Paid', '0', Icons.check_circle, Colors.green),
         const SizedBox(width: 12),
-        _buildStatCard('Amount', 'Rs 0', Icons.attach_money, Colors.purple),
+        _buildStatCard('Amount', 'PKR 0', Icons.attach_money, Colors.purple),
       ],
     );
   }
@@ -452,8 +452,8 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
                     Expanded(
                       child: _buildInfoItem(
                         'Amount',
-                        'Rs ${total.toStringAsFixed(2)}',
-                        Icons.attach_money,
+                        'PKR ${total.toStringAsFixed(2)}',
+                        Icons.currency_rupee,
                         Colors.green,
                       ),
                     ),
@@ -651,15 +651,15 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
             ),
             child: Column(
               children: [
-                _buildDetailRow('Subtotal', 'Rs ${(pricing['subtotal'] as double? ?? 0).toStringAsFixed(2)}'),
+                _buildDetailRow('Subtotal', 'PKR ${(pricing['subtotal'] as double? ?? 0).toStringAsFixed(2)}'),
                 if ((pricing['discount'] as double? ?? 0) > 0)
-                  _buildDetailRow('Discount', '- Rs ${(pricing['discount'] as double? ?? 0).toStringAsFixed(2)}'),
+                  _buildDetailRow('Discount', '- PKR ${(pricing['discount'] as double? ?? 0).toStringAsFixed(2)}'),
                 if (pricing['extraDiscount'] != null && (pricing['extraDiscount'] as double? ?? 0) > 0)
-                  _buildDetailRow('Extra Discount', '- Rs ${(pricing['extraDiscount'] as double? ?? 0).toStringAsFixed(2)}'),
+                  _buildDetailRow('Extra Discount', '- PKR ${(pricing['extraDiscount'] as double? ?? 0).toStringAsFixed(2)}'),
                 const Divider(),
                 _buildDetailRow(
                   'Total Amount', 
-                  'Rs ${(pricing['finalTotal'] as double? ?? 0).toStringAsFixed(2)}',
+                  'PKR ${(pricing['finalTotal'] as double? ?? 0).toStringAsFixed(2)}',
                   isTotal: true,
                 ),
               ],
@@ -739,21 +739,34 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: isTotal ? 16 : 14,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-              color: isTotal ? Colors.black87 : Colors.grey[600],
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: isTotal ? 16 : 14,
+                fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+                color: isTotal ? Colors.black87 : Colors.grey[600],
+              ),
+              softWrap: true,
+              overflow: TextOverflow.visible,
             ),
           ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: isTotal ? 16 : 14,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
-              color: isTotal ? Colors.green : Colors.black87,
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: isTotal ? 16 : 14,
+                fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
+                color: isTotal ? Colors.green : Colors.black87,
+              ),
+              textAlign: TextAlign.end,
+              softWrap: true,
+              overflow: TextOverflow.visible,
             ),
           ),
         ],
@@ -783,15 +796,31 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
+              softWrap: true,
+              overflow: TextOverflow.visible,
             ),
             const SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('$quantity × Rs ${price.toStringAsFixed(2)}'),
-                Text(
-                  'Rs ${total.toStringAsFixed(2)}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    '$quantity × PKR ${price.toStringAsFixed(2)}',
+                    softWrap: true,
+                    overflow: TextOverflow.visible,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 1,
+                  child: Text(
+                    'PKR ${total.toStringAsFixed(2)}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    textAlign: TextAlign.end,
+                    softWrap: true,
+                    overflow: TextOverflow.visible,
+                  ),
                 ),
               ],
             ),

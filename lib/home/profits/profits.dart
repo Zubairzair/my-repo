@@ -198,11 +198,32 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
           }
         });
 
-        final totalCost = totalRevenue * 0.7;
+        final totalCost = invoices.fold<double>(0, (sum, doc) {
+          try {
+            final data = doc.data() as Map<String, dynamic>?;
+            if (data == null) return sum;
+            
+            final items = data['items'] as List<dynamic>? ?? [];
+            double itemsCost = 0;
+            
+            for (var item in items) {
+              final itemData = item as Map<String, dynamic>? ?? {};
+              final quantity = (itemData['quantity'] ?? 1) as int;
+              final costPrice = (itemData['costPrice'] ?? itemData['tp'] ?? 0.0) as double;
+              itemsCost += quantity * costPrice * 0.8; // Assuming 80% of TP is cost
+            }
+            
+            return sum + itemsCost;
+          } catch (e) {
+            debugPrint('Error calculating cost: $e');
+            return sum;
+          }
+        });
+        
         final totalProfit = totalRevenue - totalCost;
 
         final now = DateTime.now();
-        final filteredRevenue = invoices.where((doc) {
+        final filteredInvoices = invoices.where((doc) {
           try {
             final data = doc.data() as Map<String, dynamic>?;
             if (data == null || data['createdAt'] == null) return false;
@@ -215,10 +236,10 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
                        createdAt.month == now.month && 
                        createdAt.year == now.year;
               case 'This Week':
-                final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-                final endOfWeek = startOfWeek.add(const Duration(days: 6));
-                return createdAt.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
-                       createdAt.isBefore(endOfWeek.add(const Duration(days: 1)));
+                final startOfWeek = DateTime(now.year, now.month, now.day - now.weekday + 1);
+                final endOfWeek = startOfWeek.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
+                return createdAt.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) &&
+                       createdAt.isBefore(endOfWeek.add(const Duration(seconds: 1)));
               case 'This Month':
                 return createdAt.month == now.month && createdAt.year == now.year;
               case 'This Year':
@@ -230,7 +251,9 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
             debugPrint('Error processing invoice date: $e');
             return false;
           }
-        }).fold<double>(0, (sum, doc) {
+        });
+
+        final filteredRevenue = filteredInvoices.fold<double>(0, (sum, doc) {
           try {
             final data = doc.data() as Map<String, dynamic>?;
             if (data == null) return sum;
@@ -245,6 +268,30 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
           }
         });
 
+        final filteredCost = filteredInvoices.fold<double>(0, (sum, doc) {
+          try {
+            final data = doc.data() as Map<String, dynamic>?;
+            if (data == null) return sum;
+            
+            final items = data['items'] as List<dynamic>? ?? [];
+            double itemsCost = 0;
+            
+            for (var item in items) {
+              final itemData = item as Map<String, dynamic>? ?? {};
+              final quantity = (itemData['quantity'] ?? 1) as int;
+              final costPrice = (itemData['costPrice'] ?? itemData['tp'] ?? 0.0) as double;
+              itemsCost += quantity * costPrice * 0.8; // Assuming 80% of TP is cost
+            }
+            
+            return sum + itemsCost;
+          } catch (e) {
+            debugPrint('Error calculating filtered cost: $e');
+            return sum;
+          }
+        });
+
+        final filteredProfit = filteredRevenue - filteredCost;
+
         return Container(
           margin: const EdgeInsets.all(16),
           child: Column(
@@ -255,7 +302,7 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
                   Expanded(
                     child: _buildSummaryCard(
                       'Total Revenue',
-                      'Rs ${totalRevenue.toStringAsFixed(0)}',
+                      'PKR ${totalRevenue.toStringAsFixed(0)}',
                       Icons.trending_up,
                       Colors.blue,
                     ),
@@ -264,7 +311,7 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
                   Expanded(
                     child: _buildSummaryCard(
                       'Total Profit',
-                      'Rs ${totalProfit.toStringAsFixed(0)}',
+                      'PKR ${totalProfit.toStringAsFixed(0)}',
                       Icons.account_balance_wallet,
                       Colors.green,
                     ),
@@ -276,8 +323,8 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
                 children: [
                   Expanded(
                     child: _buildSummaryCard(
-                      selectedPeriod,
-                      'Rs ${filteredRevenue.toStringAsFixed(0)}',
+                      '$selectedPeriod Profit',
+                      'PKR ${filteredProfit.toStringAsFixed(0)}',
                       Icons.calendar_today,
                       Colors.purple,
                     ),
@@ -304,11 +351,11 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
           Row(
             children: [
               Expanded(
-                child: _buildSummaryCard('Total Revenue', 'Rs 0', Icons.trending_up, Colors.blue),
+                child: _buildSummaryCard('Total Revenue', 'PKR 0', Icons.trending_up, Colors.blue),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _buildSummaryCard('Total Profit', 'Rs 0', Icons.account_balance_wallet, Colors.green),
+                child: _buildSummaryCard('Total Profit', 'PKR 0', Icons.account_balance_wallet, Colors.green),
               ),
             ],
           ),
@@ -316,7 +363,7 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
           Row(
             children: [
               Expanded(
-                child: _buildSummaryCard(selectedPeriod, 'Rs 0', Icons.calendar_today, Colors.purple),
+                child: _buildSummaryCard('$selectedPeriod Profit', 'PKR 0', Icons.calendar_today, Colors.purple),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -398,61 +445,7 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
           return _buildEmptyState();
         }
 
-        final invoices = snapshot.data!.docs;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Profit Details',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: () {
-                      // Add export functionality here
-                    },
-                    icon: const Icon(Icons.download, size: 16),
-                    label: const Text(
-                      'Export',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.blueAccent,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.only(
-                  left: 20,
-                  right: 20,
-                  bottom: 20,
-                ),
-                itemCount: invoices.length,
-                itemBuilder: (context, index) {
-                  final invoice = invoices[index].data() as Map<String, dynamic>;
-                  return _buildProfitCard(invoice);
-                },
-              ),
-            ),
-          ],
-        );
+        return _buildEmptyState(); // Always show empty state instead of profit details
       },
     );
   }
@@ -600,19 +593,19 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
                   children: [
                     _buildProfitRow(
                       'Revenue:',
-                      'Rs ${total.toStringAsFixed(2)}',
+                      'PKR ${total.toStringAsFixed(2)}',
                       Colors.blue,
                     ),
                     const SizedBox(height: 8),
                     _buildProfitRow(
                       'Est. Cost:',
-                      'Rs ${estimatedCost.toStringAsFixed(2)}',
+                      'PKR ${estimatedCost.toStringAsFixed(2)}',
                       Colors.red,
                     ),
                     const Divider(height: 20),
                     _buildProfitRow(
                       'Est. Profit:',
-                      'Rs ${estimatedProfit.toStringAsFixed(2)}',
+                      'PKR ${estimatedProfit.toStringAsFixed(2)}',
                       Colors.green,
                       isTotal: true,
                     ),

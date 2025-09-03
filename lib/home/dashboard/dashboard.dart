@@ -99,8 +99,6 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
                 _buildMonthlySalesChart(),
                 const SizedBox(height: 24),
                 _buildQuickActions(),
-                const SizedBox(height: 24),
-                _buildRecentInvoices(),
                 SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
               ]),
             ),
@@ -169,7 +167,7 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
                         });
 
                         return Text(
-                          'Total Sales: Rs ${totalAmount.toStringAsFixed(2)}',
+                          'Total Sales: PKR ${totalAmount.toStringAsFixed(2)}',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -279,7 +277,7 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
                   ),
                   _buildStatCard(
                     'Total Revenue',
-                    'Rs ${_formatAmount(paidAmount)}',
+                    'PKR ${_formatAmount(paidAmount)}',
                     Icons.trending_up,
                     Colors.purple,
                   ),
@@ -328,7 +326,7 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
           children: [
             _buildStatCard('Total Invoices', '0', Icons.receipt_long, Colors.blue),
             _buildStatCard('Paid Invoices', '0', Icons.check_circle, Colors.green),
-            _buildStatCard('Total Revenue', 'Rs 0', Icons.trending_up, Colors.purple),
+            _buildStatCard('Total Revenue', 'PKR 0', Icons.trending_up, Colors.purple),
             _buildStatCard('This Month', '${DateTime.now().day}/${DateTime.now().month}', Icons.calendar_today, Colors.orange),
           ],
         );
@@ -604,278 +602,6 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
     );
   }
 
-  Widget _buildRecentInvoices() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  'Recent Invoices',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                widget.onNavigateToTab(1); // Navigate to Invoices tab
-              },
-              child: const Text('View All'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('invoices')
-              .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-              .limit(3)
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            if (snapshot.hasError) {
-              debugPrint('Recent invoices error: ${snapshot.error}');
-              return _buildEmptyRecentInvoices();
-            }
-
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return _buildEmptyRecentInvoices();
-            }
-
-            try {
-              final invoices = snapshot.data!.docs;
-              return Column(
-                children: invoices.map((doc) {
-                  try {
-                    final invoice = doc.data() as Map<String, dynamic>?;
-                    if (invoice == null) return const SizedBox.shrink();
-                    return _buildRecentInvoiceCard(invoice);
-                  } catch (e) {
-                    debugPrint('Error rendering recent invoice: $e');
-                    return const SizedBox.shrink();
-                  }
-                }).toList(),
-              );
-            } catch (e) {
-              debugPrint('Error building recent invoices: $e');
-              return _buildEmptyRecentInvoices();
-            }
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyRecentInvoices() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            spreadRadius: 0,
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.receipt_long_outlined,
-            size: 48,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'No invoices yet',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Create your first invoice to see it here',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentInvoiceCard(Map<String, dynamic> invoice) {
-    final createdAt = DateTime.parse(invoice['createdAt']);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            spreadRadius: 0,
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          bool isNarrow = constraints.maxWidth < 350;
-
-          return Column(
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.blueAccent.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.receipt,
-                      color: Colors.blueAccent,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            invoice['customer']['name'],
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${createdAt.day}/${createdAt.month}/${createdAt.year}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!isNarrow) ...[
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            'Rs ${(invoice['pricing']['total'] as double).toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'Paid',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.green,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-              if (isNarrow) ...[
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        'Rs ${(invoice['pricing']['total'] as double).toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Paid',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.green,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Paid':
-        return Colors.green;
-      case 'Overdue':
-        return Colors.red;
-      default:
-        return Colors.orange;
-    }
-  }
 
   Widget _buildMonthlySalesChart() {
     return Column(
@@ -1043,7 +769,7 @@ class _DashboardState extends State<Dashboard> with AutomaticKeepAliveClientMixi
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
-                                    'Rs ${_formatChartAmount(entry.value)}',
+                                    'PKR ${_formatChartAmount(entry.value)}',
                                     style: TextStyle(
                                       fontSize: fontSize,
                                       fontWeight: FontWeight.w500,

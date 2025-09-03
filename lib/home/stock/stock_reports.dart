@@ -168,8 +168,8 @@ class _StockReportsState extends State<StockReports> {
               Expanded(
                 child: _buildSummaryCard(
                   'Total Value',
-                  'Rs ${totalValue.toStringAsFixed(0)}',
-                  Icons.attach_money,
+                  'PKR ${totalValue.toStringAsFixed(0)}',
+                  Icons.currency_rupee,
                   Colors.green,
                 ),
               ),
@@ -194,7 +194,7 @@ class _StockReportsState extends State<StockReports> {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: _buildSummaryCard('Total Value', 'Rs 0', Icons.attach_money, Colors.green),
+            child: _buildSummaryCard('Total Value', 'PKR 0', Icons.attach_money, Colors.green),
           ),
         ],
       ),
@@ -484,8 +484,8 @@ class _StockReportsState extends State<StockReports> {
                 Expanded(
                   child: _buildInfoItem(
                     'Price',
-                    'Rs ${price.toStringAsFixed(2)}',
-                    Icons.attach_money,
+                    'PKR ${price.toStringAsFixed(2)}',
+                    Icons.currency_rupee,
                     Colors.green,
                   ),
                 ),
@@ -493,7 +493,7 @@ class _StockReportsState extends State<StockReports> {
                 Expanded(
                   child: _buildInfoItem(
                     'Value',
-                    'Rs ${totalValue.toStringAsFixed(0)}',
+                    'PKR ${totalValue.toStringAsFixed(0)}',
                     Icons.account_balance_wallet,
                     Colors.purple,
                   ),
@@ -721,7 +721,7 @@ class _StockReportsState extends State<StockReports> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Price (Rs) *',
+                      'Price (PKR) *',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -732,7 +732,7 @@ class _StockReportsState extends State<StockReports> {
                     TextField(
                       controller: priceController,
                       decoration: const InputDecoration(
-                        hintText: 'Enter price in Rupees',
+                        hintText: 'Enter price in PKR',
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                       ),
@@ -897,7 +897,7 @@ class _StockReportsState extends State<StockReports> {
             TextField(
               controller: priceController,
               decoration: const InputDecoration(
-                labelText: 'New Price (Rs)',
+                labelText: 'New Price (PKR)',
                 border: OutlineInputBorder(),
               ),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),

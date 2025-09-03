@@ -29,47 +29,47 @@ class InvoiceExportService {
             borderRadius: BorderRadius.circular(16),
           ),
           title: const Text(
-            'Export Invoice',
+            'Share Invoice',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Choose export format:'),
+              const Text('Choose format to share:'),
               const SizedBox(height: 16),
               _buildExportOption(
                 context,
                 icon: Icons.picture_as_pdf,
-                title: 'Share as PDF',
+                title: 'PDF Format',
                 subtitle: 'Professional document format',
                 color: Colors.red,
                 onTap: () {
                   Navigator.pop(context);
-                  _exportAsPDF(context, invoiceData, customerData, items, pricing);
+                  _exportToPDF(context, invoiceData, customerData, items, pricing);
                 },
               ),
               const SizedBox(height: 12),
               _buildExportOption(
                 context,
                 icon: Icons.table_chart,
-                title: 'Share as Excel',
+                title: 'Excel Format',
                 subtitle: 'Spreadsheet format',
                 color: Colors.green,
                 onTap: () {
                   Navigator.pop(context);
-                  _exportAsExcel(context, invoiceData, customerData, items, pricing);
+                  _exportToExcel(context, invoiceData, customerData, items, pricing);
                 },
               ),
               const SizedBox(height: 12),
               _buildExportOption(
                 context,
                 icon: Icons.image,
-                title: 'Share as Image',
+                title: 'Image Format',
                 subtitle: 'Screenshot format',
                 color: Colors.blue,
                 onTap: () {
                   Navigator.pop(context);
-                  _exportAsImage(context, invoiceData, customerData, items, pricing);
+                  _exportToImage(context, invoiceData, customerData, items, pricing);
                 },
               ),
             ],
@@ -142,7 +142,7 @@ class InvoiceExportService {
   }
 
   // Export as PDF
-  static Future<void> _exportAsPDF(
+  static Future<void> _exportToPDF(
     BuildContext context,
     Map<String, dynamic> invoiceData,
     Map<String, dynamic> customerData,
@@ -150,62 +150,96 @@ class InvoiceExportService {
     Map<String, dynamic> pricing,
   ) async {
     try {
-      _showLoadingDialog(context, 'Generating PDF...');
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Generating PDF...'),
+            ],
+          ),
+        ),
+      );
 
       final pdf = pw.Document();
       
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(32),
           build: (pw.Context context) {
             return pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                // Header
+                // Al Badar Traders Header
+                pw.Center(
+                  child: pw.Text(
+                    'Al Badar Traders',
+                    style: pw.TextStyle(
+                      fontSize: 24,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+                
+                // Shop and Invoice Details
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text(
-                      'INVOICE',
-                      style: pw.TextStyle(
-                        fontSize: 24,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Shop: ${customerData['name'] ?? 'N/A'}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        pw.Text('Address: ${customerData['address'] ?? 'N/A'}'),
+                        if (customerData['phone'] != null) pw.Text('Phone: ${customerData['phone']}'),
+                        if (customerData['email'] != null) pw.Text('Email: ${customerData['email']}'),
+                      ],
                     ),
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
-                        pw.Text('Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}'),
-                        pw.Text('Date: ${invoiceData['date'] ?? 'N/A'}'),
+                        pw.Text('Date: ${invoiceData['date'] ?? DateTime.now().toString().substring(0, 10)}'),
+                        pw.Text('Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                       ],
                     ),
                   ],
                 ),
-                pw.SizedBox(height: 20),
-                
-                // Customer Info
-                pw.Text(
-                  'Bill To:',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 16),
-                ),
-                pw.SizedBox(height: 8),
-                pw.Text('${customerData['name'] ?? 'N/A'}'),
-                pw.Text('${customerData['address'] ?? 'N/A'}'),
-                pw.Text('Phone: ${customerData['phone'] ?? 'N/A'}'),
-                pw.Text('Email: ${customerData['email'] ?? 'N/A'}'),
-                pw.SizedBox(height: 20),
+                pw.SizedBox(height: 30),
                 
                 // Items Table
                 pw.Table(
-                  border: pw.TableBorder.all(),
+                  border: pw.TableBorder.all(color: PdfColors.grey400),
+                  columnWidths: {
+                    0: const pw.FlexColumnWidth(2), // Barcode
+                    1: const pw.FlexColumnWidth(1), // Serial Number
+                    2: const pw.FlexColumnWidth(2), // SKU
+                    3: const pw.FlexColumnWidth(1), // Quantity
+                    4: const pw.FlexColumnWidth(1), // Unit
+                    5: const pw.FlexColumnWidth(2), // TP
+                    6: const pw.FlexColumnWidth(2), // Total
+                  },
                   children: [
-                    // Header
+                    // Table Header
                     pw.TableRow(
-                      decoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                      decoration: const pw.BoxDecoration(color: PdfColors.grey200),
                       children: [
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('Item', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                          child: pw.Text('Barcode', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text('S#', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text('SKU', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
@@ -213,7 +247,11 @@ class InvoiceExportService {
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('Price', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                          child: pw.Text('Unit', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(8),
+                          child: pw.Text('TP', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                         ),
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(8),
@@ -221,80 +259,97 @@ class InvoiceExportService {
                         ),
                       ],
                     ),
-                    // Items
-                    ...items.map((item) => pw.TableRow(
-                      children: [
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('${item['name'] ?? 'N/A'}'),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('${item['quantity'] ?? 0}'),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('Rs ${((item['price'] ?? 0.0) as double).toStringAsFixed(2)}'),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(8),
-                          child: pw.Text('Rs ${(((item['quantity'] ?? 1) as int) * ((item['price'] ?? 0.0) as double)).toStringAsFixed(2)}'),
-                        ),
-                      ],
-                    )).toList(),
+                    // Table Rows
+                    ...items.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final item = entry.value;
+                      final tp = (item['tp'] ?? 0.0) as double;
+                      final quantity = (item['quantity'] ?? 1) as int;
+                      final total = tp * quantity;
+                      
+                      return pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(8),
+                            child: pw.Text(item['barcode']?.toString() ?? 'N/A'),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(8),
+                            child: pw.Text('${index + 1}'),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(8),
+                            child: pw.Text(item['sku']?.toString() ?? ''),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(8),
+                            child: pw.Text('$quantity'),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(8),
+                            child: pw.Text(item['unit']?.toString() ?? 'Pcs'),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(8),
+                            child: pw.Text('Rs ${tp.toStringAsFixed(2)}'),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(8),
+                            child: pw.Text('Rs ${total.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                          ),
+                        ],
+                      );
+                    }).toList(),
                   ],
                 ),
-                pw.SizedBox(height: 20),
+                pw.SizedBox(height: 30),
                 
                 // Pricing Summary
                 pw.Align(
                   alignment: pw.Alignment.centerRight,
                   child: pw.Container(
-                    width: 200,
+                    width: 250,
+                    padding: const pw.EdgeInsets.all(16),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.grey400),
+                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                    ),
                     child: pw.Column(
                       children: [
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('Subtotal:'),
-                            pw.Text('Rs ${((pricing['subtotal'] ?? 0.0) as double).toStringAsFixed(2)}'),
+                            pw.Text('Subtotal:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                            pw.Text('Rs ${(pricing['subtotal'] as double).toStringAsFixed(2)}'),
                           ],
                         ),
-                        if ((pricing['discount'] ?? 0.0) > 0) ...[
-                          pw.SizedBox(height: 4),
+                        if ((pricing['discount'] as double) > 0) ...[
+                          pw.SizedBox(height: 8),
                           pw.Row(
                             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                             children: [
                               pw.Text('Discount:'),
-                              pw.Text('-Rs ${((pricing['discount'] ?? 0.0) as double).toStringAsFixed(2)}'),
+                              pw.Text('-Rs ${(pricing['discount'] as double).toStringAsFixed(2)}'),
                             ],
                           ),
                         ],
-                        if ((pricing['extraDiscount'] ?? 0.0) > 0) ...[
-                          pw.SizedBox(height: 4),
+                        if ((pricing['extraDiscount'] as double) > 0) ...[
+                          pw.SizedBox(height: 8),
                           pw.Row(
                             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                             children: [
                               pw.Text('Extra Discount:'),
-                              pw.Text('-Rs ${((pricing['extraDiscount'] ?? 0.0) as double).toStringAsFixed(2)}'),
+                              pw.Text('-Rs ${(pricing['extraDiscount'] as double).toStringAsFixed(2)}'),
                             ],
                           ),
                         ],
-                        pw.SizedBox(height: 4),
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Text('Tax:'),
-                            pw.Text('Rs ${((pricing['taxAmount'] ?? 0.0) as double).toStringAsFixed(2)}'),
-                          ],
-                        ),
                         pw.Divider(),
                         pw.Row(
                           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                           children: [
-                            pw.Text('Total:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                            pw.Text('Rs ${((pricing['total'] ?? 0.0) as double).toStringAsFixed(2)}', 
-                                   style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                            pw.Text('Final Total:', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                            pw.Text('Rs ${(pricing['total'] as double).toStringAsFixed(2)}', 
+                                   style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
                           ],
                         ),
                       ],
@@ -307,25 +362,32 @@ class InvoiceExportService {
         ),
       );
 
+      // Save PDF to temporary directory
       final output = await getTemporaryDirectory();
       final file = File('${output.path}/invoice_${invoiceData['invoiceNumber'] ?? DateTime.now().millisecondsSinceEpoch}.pdf');
       await file.writeAsBytes(await pdf.save());
 
-      Navigator.pop(context); // Close loading dialog
+      // Close loading dialog
+      Navigator.pop(context);
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'Invoice #${invoiceData['invoiceNumber'] ?? 'N/A'}',
-      );
+      // Share the file
+      await Share.shareXFiles([XFile(file.path)], text: 'Invoice PDF');
 
     } catch (e) {
-      Navigator.pop(context); // Close loading dialog
-      _showErrorDialog(context, 'Error generating PDF: ${e.toString()}');
+      // Close loading dialog if open
+      Navigator.pop(context);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generating PDF: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   // Export as Excel
-  static Future<void> _exportAsExcel(
+  static Future<void> _exportToExcel(
     BuildContext context,
     Map<String, dynamic> invoiceData,
     Map<String, dynamic> customerData,
@@ -333,108 +395,134 @@ class InvoiceExportService {
     Map<String, dynamic> pricing,
   ) async {
     try {
-      _showLoadingDialog(context, 'Generating Excel...');
-
-      var excel = xl.Excel.createExcel();
-      xl.Sheet sheetObject = excel['Invoice'];
-
-      // Header
-      sheetObject.cell(xl.CellIndex.indexByString("A1")).value = 'INVOICE';
-      sheetObject.cell(xl.CellIndex.indexByString("A1")).cellStyle = xl.CellStyle(
-        fontSize: 18,
-        bold: true,
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Generating Excel...'),
+            ],
+          ),
+        ),
       );
 
-      // Invoice Info
-      sheetObject.cell(xl.CellIndex.indexByString("A3")).value = 'Invoice Number:';
-      sheetObject.cell(xl.CellIndex.indexByString("B3")).value = '${invoiceData['invoiceNumber'] ?? 'N/A'}';
-      sheetObject.cell(xl.CellIndex.indexByString("A4")).value = 'Date:';
-      sheetObject.cell(xl.CellIndex.indexByString("B4")).value = '${invoiceData['date'] ?? 'N/A'}';
-
-      // Customer Info
-      sheetObject.cell(xl.CellIndex.indexByString("A6")).value = 'Bill To:';
-      sheetObject.cell(xl.CellIndex.indexByString("A6")).cellStyle = xl.CellStyle(bold: true);
-      sheetObject.cell(xl.CellIndex.indexByString("A7")).value = '${customerData['name'] ?? 'N/A'}';
-      sheetObject.cell(xl.CellIndex.indexByString("A8")).value = '${customerData['address'] ?? 'N/A'}';
-      sheetObject.cell(xl.CellIndex.indexByString("A9")).value = 'Phone: ${customerData['phone'] ?? 'N/A'}';
-      sheetObject.cell(xl.CellIndex.indexByString("A10")).value = 'Email: ${customerData['email'] ?? 'N/A'}';
-
-      // Items Header
-      int startRow = 12;
-      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: startRow)).value = 'Item';
-      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: startRow)).value = 'Quantity';
-      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: startRow)).value = 'Price';
-      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: startRow)).value = 'Total';
-
-      // Style header row
-      for (int i = 0; i < 4; i++) {
-        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: i, rowIndex: startRow)).cellStyle = xl.CellStyle(bold: true);
+      var excel = Excel.createExcel();
+      Sheet sheetObject = excel['Invoice'];
+      
+      // Al Badar Traders Header
+      sheetObject.cell(CellIndex.indexByString("A1")).value = const TextCellValue('Al Badar Traders');
+      sheetObject.cell(CellIndex.indexByString("A1")).cellStyle = CellStyle(
+        bold: true,
+        fontSize: 16,
+        horizontalAlign: HorizontalAlign.Center,
+      );
+      sheetObject.merge(CellIndex.indexByString("A1"), CellIndex.indexByString("G1"));
+      
+      // Shop and Invoice Details
+      sheetObject.cell(CellIndex.indexByString("A3")).value = TextCellValue('Shop: ${customerData['name'] ?? 'N/A'}');
+      sheetObject.cell(CellIndex.indexByString("A4")).value = TextCellValue('Address: ${customerData['address'] ?? 'N/A'}');
+      if (customerData['phone'] != null) {
+        sheetObject.cell(CellIndex.indexByString("A5")).value = TextCellValue('Phone: ${customerData['phone']}');
       }
-
-      // Items Data
+      if (customerData['email'] != null) {
+        sheetObject.cell(CellIndex.indexByString("A6")).value = TextCellValue('Email: ${customerData['email']}');
+      }
+      
+      sheetObject.cell(CellIndex.indexByString("E3")).value = TextCellValue('Date: ${invoiceData['date'] ?? DateTime.now().toString().substring(0, 10)}');
+      sheetObject.cell(CellIndex.indexByString("E4")).value = TextCellValue('Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}');
+      
+      // Table Headers (starting from row 8)
+      int headerRow = 8;
+      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: headerRow)).value = const TextCellValue('Barcode');
+      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: headerRow)).value = const TextCellValue('S#');
+      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: headerRow)).value = const TextCellValue('SKU');
+      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: headerRow)).value = const TextCellValue('Quantity');
+      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: headerRow)).value = const TextCellValue('Unit');
+      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: headerRow)).value = const TextCellValue('TP');
+      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: headerRow)).value = const TextCellValue('Total');
+      
+      // Style headers
+      for (int col = 0; col <= 6; col++) {
+        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: col, rowIndex: headerRow)).cellStyle = CellStyle(
+          bold: true,
+          backgroundColorHex: ExcelColor.grey25,
+        );
+      }
+      
+      // Add items data
       for (int i = 0; i < items.length; i++) {
-        int row = startRow + 1 + i;
-        var item = items[i];
-        double price = (item['price'] ?? 0.0) as double;
-        int quantity = (item['quantity'] ?? 1) as int;
-        double total = price * quantity;
-
-        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).value = '${item['name'] ?? 'N/A'}';
-        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row)).value = quantity;
-        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row)).value = price;
-        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row)).value = total;
+        final item = items[i];
+        final rowIndex = headerRow + 1 + i;
+        final tp = (item['tp'] ?? 0.0) as double;
+        final quantity = (item['quantity'] ?? 1) as int;
+        final total = tp * quantity;
+        
+        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: rowIndex)).value = TextCellValue(item['barcode']?.toString() ?? 'N/A');
+        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value = IntCellValue(i + 1);
+        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value = TextCellValue(item['sku']?.toString() ?? '');
+        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: rowIndex)).value = IntCellValue(quantity);
+        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: rowIndex)).value = TextCellValue(item['unit']?.toString() ?? 'Pcs');
+        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: rowIndex)).value = DoubleCellValue(tp);
+        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value = DoubleCellValue(total);
       }
-
-      // Pricing Summary
-      int summaryRow = startRow + items.length + 3;
-      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: summaryRow)).value = 'Subtotal:';
-      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: summaryRow)).value = (pricing['subtotal'] ?? 0.0) as double;
-
-      if ((pricing['discount'] ?? 0.0) > 0) {
-        summaryRow++;
-        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: summaryRow)).value = 'Discount:';
-        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: summaryRow)).value = -((pricing['discount'] ?? 0.0) as double);
+      
+      // Pricing Summary (starting after items)
+      int summaryStartRow = headerRow + items.length + 3;
+      
+      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: summaryStartRow)).value = const TextCellValue('Subtotal:');
+      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: summaryStartRow)).value = DoubleCellValue(pricing['subtotal'] as double);
+      
+      if ((pricing['discount'] as double) > 0) {
+        summaryStartRow++;
+        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: summaryStartRow)).value = const TextCellValue('Discount:');
+        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: summaryStartRow)).value = DoubleCellValue(-(pricing['discount'] as double));
       }
-
-      if ((pricing['extraDiscount'] ?? 0.0) > 0) {
-        summaryRow++;
-        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: summaryRow)).value = 'Extra Discount:';
-        sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: summaryRow)).value = -((pricing['extraDiscount'] ?? 0.0) as double);
+      
+      if ((pricing['extraDiscount'] as double) > 0) {
+        summaryStartRow++;
+        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: summaryStartRow)).value = const TextCellValue('Extra Discount:');
+        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: summaryStartRow)).value = DoubleCellValue(-(pricing['extraDiscount'] as double));
       }
+      
+      summaryStartRow++;
+      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: summaryStartRow)).value = const TextCellValue('Final Total:');
+      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: summaryStartRow)).value = DoubleCellValue(pricing['total'] as double);
+      
+      // Style final total
+      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: summaryStartRow)).cellStyle = CellStyle(bold: true);
+      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: summaryStartRow)).cellStyle = CellStyle(bold: true);
 
-      summaryRow++;
-      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: summaryRow)).value = 'Tax:';
-      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: summaryRow)).value = (pricing['taxAmount'] ?? 0.0) as double;
-
-      summaryRow++;
-      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: summaryRow)).value = 'Total:';
-      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: summaryRow)).value = (pricing['total'] ?? 0.0) as double;
-      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: summaryRow)).cellStyle = xl.CellStyle(bold: true);
-      sheetObject.cell(xl.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: summaryRow)).cellStyle = xl.CellStyle(bold: true);
-
+      // Save Excel file
       final output = await getTemporaryDirectory();
       final file = File('${output.path}/invoice_${invoiceData['invoiceNumber'] ?? DateTime.now().millisecondsSinceEpoch}.xlsx');
-      
-      List<int>? fileBytes = excel.save();
-      if (fileBytes != null) {
-        await file.writeAsBytes(fileBytes);
-      }
+      await file.writeAsBytes(excel.save()!);
 
-      Navigator.pop(context); // Close loading dialog
+      // Close loading dialog
+      Navigator.pop(context);
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'Invoice #${invoiceData['invoiceNumber'] ?? 'N/A'}',
-      );
+      // Share the file
+      await Share.shareXFiles([XFile(file.path)], text: 'Invoice Excel');
 
     } catch (e) {
-      Navigator.pop(context); // Close loading dialog
-      _showErrorDialog(context, 'Error generating Excel: ${e.toString()}');
+      // Close loading dialog if open
+      Navigator.pop(context);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generating Excel: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   // Export as Image (Screenshot)
-  static Future<void> _exportAsImage(
+  static Future<void> _exportToImage(
     BuildContext context,
     Map<String, dynamic> invoiceData,
     Map<String, dynamic> customerData,
@@ -442,36 +530,229 @@ class InvoiceExportService {
     Map<String, dynamic> pricing,
   ) async {
     try {
-      _showLoadingDialog(context, 'Generating Image...');
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Generating Image...'),
+            ],
+          ),
+        ),
+      );
 
-      // Create a widget to capture
-      final invoiceWidget = _buildInvoiceWidget(invoiceData, customerData, items, pricing);
+      // Create invoice widget for screenshot
+      final invoiceWidget = RepaintBoundary(
+        child: Container(
+          width: 800,
+          padding: const EdgeInsets.all(32),
+          color: Colors.white,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Al Badar Traders Header
+              Center(
+                child: Text(
+                  'Al Badar Traders',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade800,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              // Shop and Invoice Details
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Shop: ${customerData['name'] ?? 'N/A'}', 
+                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text('Address: ${customerData['address'] ?? 'N/A'}', 
+                           style: const TextStyle(fontSize: 14)),
+                      if (customerData['phone'] != null)
+                        Text('Phone: ${customerData['phone']}', 
+                             style: const TextStyle(fontSize: 14)),
+                      if (customerData['email'] != null)
+                        Text('Email: ${customerData['email']}', 
+                             style: const TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('Date: ${invoiceData['date'] ?? DateTime.now().toString().substring(0, 10)}', 
+                           style: const TextStyle(fontSize: 14)),
+                      Text('Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}', 
+                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              
+              // Items Table
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade400),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    // Table Header
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                          topRight: Radius.circular(8),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Expanded(flex: 2, child: Text('Barcode', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                          Expanded(flex: 1, child: Text('S#', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                          Expanded(flex: 2, child: Text('SKU', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                          Expanded(flex: 1, child: Text('Qty', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                          Expanded(flex: 1, child: Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                          Expanded(flex: 2, child: Text('TP', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                          Expanded(flex: 2, child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                        ],
+                      ),
+                    ),
+                    // Table Rows
+                    ...items.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final item = entry.value;
+                      final tp = (item['tp'] ?? 0.0) as double;
+                      final quantity = (item['quantity'] ?? 1) as int;
+                      final total = tp * quantity;
+                      
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(color: Colors.grey.shade300),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(flex: 2, child: Text(item['barcode']?.toString() ?? 'N/A', style: const TextStyle(fontSize: 11))),
+                            Expanded(flex: 1, child: Text('${index + 1}', style: const TextStyle(fontSize: 11))),
+                            Expanded(flex: 2, child: Text(item['sku']?.toString() ?? '', style: const TextStyle(fontSize: 11))),
+                            Expanded(flex: 1, child: Text('$quantity', style: const TextStyle(fontSize: 11))),
+                            Expanded(flex: 1, child: Text(item['unit']?.toString() ?? 'Pcs', style: const TextStyle(fontSize: 11))),
+                            Expanded(flex: 2, child: Text('Rs ${tp.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
+                            Expanded(flex: 2, child: Text('Rs ${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+              
+              // Pricing Summary
+              Align(
+                alignment: Alignment.centerRight,
+                child: Container(
+                  width: 300,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Subtotal:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          Text('Rs ${(pricing['subtotal'] as double).toStringAsFixed(2)}', style: const TextStyle(fontSize: 14)),
+                        ],
+                      ),
+                      if ((pricing['discount'] as double) > 0) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Discount:', style: TextStyle(color: Colors.red, fontSize: 14)),
+                            Text('-Rs ${(pricing['discount'] as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.red, fontSize: 14)),
+                          ],
+                        ),
+                      ],
+                      if ((pricing['extraDiscount'] as double) > 0) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Extra Discount:', style: TextStyle(color: Colors.red, fontSize: 14)),
+                            Text('-Rs ${(pricing['extraDiscount'] as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.red, fontSize: 14)),
+                          ],
+                        ),
+                      ],
+                      const Divider(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Final Total:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text('Rs ${(pricing['total'] as double).toStringAsFixed(2)}', 
+                               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      // Create screenshot controller
+      ScreenshotController screenshotController = ScreenshotController();
       
       // Capture screenshot
-      final Uint8List? imageBytes = await _screenshotController.captureFromWidget(
+      final imageBytes = await screenshotController.captureFromWidget(
         invoiceWidget,
         pixelRatio: 2.0,
       );
 
-      if (imageBytes != null) {
-        final output = await getTemporaryDirectory();
-        final file = File('${output.path}/invoice_${invoiceData['invoiceNumber'] ?? DateTime.now().millisecondsSinceEpoch}.png');
-        await file.writeAsBytes(imageBytes);
+      // Save image to temporary directory
+      final output = await getTemporaryDirectory();
+      final file = File('${output.path}/invoice_${invoiceData['invoiceNumber'] ?? DateTime.now().millisecondsSinceEpoch}.png');
+      await file.writeAsBytes(imageBytes);
 
-        Navigator.pop(context); // Close loading dialog
+      // Close loading dialog
+      Navigator.pop(context);
 
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text: 'Invoice #${invoiceData['invoiceNumber'] ?? 'N/A'}',
-        );
-      } else {
-        Navigator.pop(context);
-        _showErrorDialog(context, 'Failed to capture invoice image');
-      }
+      // Share the file
+      await Share.shareXFiles([XFile(file.path)], text: 'Invoice Image');
 
     } catch (e) {
-      Navigator.pop(context); // Close loading dialog
-      _showErrorDialog(context, 'Error generating image: ${e.toString()}');
+      // Close loading dialog if open
+      Navigator.pop(context);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generating image: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -488,52 +769,56 @@ class InvoiceExportService {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // Header - Al Badar Traders
+          const Center(
+            child: Text(
+              'Al Badar Traders',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          
+          // Shop Information
+          if (customerData['shopName'] != null) ...[
+            Center(
+              child: Text(
+                'Shop: ${customerData['shopName']}',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+              ),
+            ),
+          ],
+          if (customerData['shopAddress'] != null) ...[
+            const SizedBox(height: 4),
+            Center(
+              child: Text(
+                'Address: ${customerData['shopAddress']}',
+                style: const TextStyle(fontSize: 16, color: Colors.black),
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          
+          // Date and Invoice Number
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'INVOICE',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
+              Text(
+                'Date: ${invoiceData['date'] ?? DateTime.now().toString().substring(0, 10)}',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}',
-                    style: const TextStyle(fontSize: 16, color: Colors.black),
-                  ),
-                  Text(
-                    'Date: ${invoiceData['date'] ?? 'N/A'}',
-                    style: const TextStyle(fontSize: 16, color: Colors.black),
-                  ),
-                ],
+              Text(
+                'Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black),
               ),
             ],
           ),
           const SizedBox(height: 24),
           
-          // Customer Info
-          const Text(
-            'Bill To:',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-              color: Colors.black,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text('${customerData['name'] ?? 'N/A'}', style: const TextStyle(fontSize: 16, color: Colors.black)),
-          Text('${customerData['address'] ?? 'N/A'}', style: const TextStyle(fontSize: 16, color: Colors.black)),
-          Text('Phone: ${customerData['phone'] ?? 'N/A'}', style: const TextStyle(fontSize: 16, color: Colors.black)),
-          Text('Email: ${customerData['email'] ?? 'N/A'}', style: const TextStyle(fontSize: 16, color: Colors.black)),
-          const SizedBox(height: 24),
-          
-          // Items Table
+          // Items Table with new structure
           Container(
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey),
@@ -543,31 +828,41 @@ class InvoiceExportService {
                 // Header
                 Container(
                   color: Colors.grey.shade200,
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   child: const Row(
                     children: [
-                      Expanded(flex: 3, child: Text('Item', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black))),
+                      Expanded(flex: 2, child: Text('Barcode', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black))),
+                      Expanded(flex: 1, child: Text('S#', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black))),
+                      Expanded(flex: 2, child: Text('SKU', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black))),
                       Expanded(flex: 1, child: Text('Qty', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black))),
-                      Expanded(flex: 2, child: Text('Price', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black))),
+                      Expanded(flex: 1, child: Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black))),
+                      Expanded(flex: 2, child: Text('TP', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black))),
                       Expanded(flex: 2, child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black))),
                     ],
                   ),
                 ),
                 // Items
-                ...items.map((item) => Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    border: Border(top: BorderSide(color: Colors.grey.shade300)),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(flex: 3, child: Text('${item['name'] ?? 'N/A'}', style: const TextStyle(color: Colors.black))),
-                      Expanded(flex: 1, child: Text('${item['quantity'] ?? 0}', style: const TextStyle(color: Colors.black))),
-                      Expanded(flex: 2, child: Text('Rs ${((item['price'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black))),
-                      Expanded(flex: 2, child: Text('Rs ${(((item['quantity'] ?? 1) as int) * ((item['price'] ?? 0.0) as double)).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black))),
-                    ],
-                  ),
-                )).toList(),
+                ...items.asMap().entries.map((entry) {
+                  int index = entry.key;
+                  var item = entry.value;
+                  return Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      border: Border(top: BorderSide(color: Colors.grey.shade300)),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(flex: 2, child: Text('${item['barcode'] ?? 'N/A'}', style: const TextStyle(color: Colors.black))),
+                        Expanded(flex: 1, child: Text('${index + 1}', style: const TextStyle(color: Colors.black))),
+                        Expanded(flex: 2, child: Text('${item['sku'] ?? 'N/A'}', style: const TextStyle(color: Colors.black))),
+                        Expanded(flex: 1, child: Text('${item['quantity'] ?? 0}', style: const TextStyle(color: Colors.black))),
+                        Expanded(flex: 1, child: Text('${item['unit'] ?? 'Pcs'}', style: const TextStyle(color: Colors.black))),
+                        Expanded(flex: 2, child: Text('Rs ${((item['price'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black))),
+                        Expanded(flex: 2, child: Text('Rs ${(((item['quantity'] ?? 1) as int) * ((item['price'] ?? 0.0) as double)).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black))),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ],
             ),
           ),
@@ -612,19 +907,11 @@ class InvoiceExportService {
                       ],
                     ),
                   ],
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Tax:', style: TextStyle(color: Colors.black)),
-                      Text('Rs ${((pricing['taxAmount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black)),
-                    ],
-                  ),
                   const Divider(color: Colors.grey),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Total:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
+                      const Text('Final Total:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
                       Text('Rs ${((pricing['total'] ?? 0.0) as double).toStringAsFixed(2)}', 
                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
                     ],

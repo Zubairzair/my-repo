@@ -191,7 +191,7 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
             final pricing = data['pricing'] as Map<String, dynamic>?;
             if (pricing == null) return sum;
             
-            return sum + (pricing['total'] as double? ?? 0);
+            return sum + (pricing['finalTotal'] as double? ?? 0);
           } catch (e) {
             debugPrint('Error processing invoice revenue: $e');
             return sum;
@@ -200,16 +200,32 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
 
         final totalCost = totalRevenue * 0.7;
         final totalProfit = totalRevenue - totalCost;
-        final profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
         final now = DateTime.now();
-        final thisMonthRevenue = invoices.where((doc) {
+        final filteredRevenue = invoices.where((doc) {
           try {
             final data = doc.data() as Map<String, dynamic>?;
             if (data == null || data['createdAt'] == null) return false;
             
             final createdAt = DateTime.parse(data['createdAt']);
-            return createdAt.month == now.month && createdAt.year == now.year;
+            
+            switch (selectedPeriod) {
+              case 'Today':
+                return createdAt.day == now.day && 
+                       createdAt.month == now.month && 
+                       createdAt.year == now.year;
+              case 'This Week':
+                final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+                final endOfWeek = startOfWeek.add(const Duration(days: 6));
+                return createdAt.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
+                       createdAt.isBefore(endOfWeek.add(const Duration(days: 1)));
+              case 'This Month':
+                return createdAt.month == now.month && createdAt.year == now.year;
+              case 'This Year':
+                return createdAt.year == now.year;
+              default:
+                return createdAt.month == now.month && createdAt.year == now.year;
+            }
           } catch (e) {
             debugPrint('Error processing invoice date: $e');
             return false;
@@ -222,9 +238,9 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
             final pricing = data['pricing'] as Map<String, dynamic>?;
             if (pricing == null) return sum;
             
-            return sum + (pricing['total'] as double? ?? 0);
+            return sum + (pricing['finalTotal'] as double? ?? 0);
           } catch (e) {
-            debugPrint('Error processing monthly revenue: $e');
+            debugPrint('Error processing filtered revenue: $e');
             return sum;
           }
         });
@@ -260,20 +276,15 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
                 children: [
                   Expanded(
                     child: _buildSummaryCard(
-                      'Profit Margin',
-                      '${profitMargin.toStringAsFixed(1)}%',
-                      Icons.percent,
-                      Colors.orange,
+                      selectedPeriod,
+                      'Rs ${filteredRevenue.toStringAsFixed(0)}',
+                      Icons.calendar_today,
+                      Colors.purple,
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildSummaryCard(
-                      'This Month',
-                      'Rs ${thisMonthRevenue.toStringAsFixed(0)}',
-                      Icons.calendar_today,
-                      Colors.purple,
-                    ),
+                    child: Container(), // Empty space to maintain layout
                   ),
                 ],
               ),
@@ -305,11 +316,11 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
           Row(
             children: [
               Expanded(
-                child: _buildSummaryCard('Profit Margin', '0%', Icons.percent, Colors.orange),
+                child: _buildSummaryCard(selectedPeriod, 'Rs 0', Icons.calendar_today, Colors.purple),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _buildSummaryCard('This Month', 'Rs 0', Icons.calendar_today, Colors.purple),
+                child: Container(), // Empty space to maintain layout
               ),
             ],
           ),
@@ -502,7 +513,6 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
       final total = pricing['total'] as double? ?? 0.0;
       final estimatedCost = total * 0.7;
       final estimatedProfit = total - estimatedCost;
-      final profitMargin = total > 0 ? (estimatedProfit / total) * 100 : 0;
       final customer = invoice['customer'] as Map<String, dynamic>? ?? {};
 
       return Container(
@@ -605,12 +615,6 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
                       'Rs ${estimatedProfit.toStringAsFixed(2)}',
                       Colors.green,
                       isTotal: true,
-                    ),
-                    const SizedBox(height: 8),
-                    _buildProfitRow(
-                      'Margin:',
-                      '${profitMargin.toStringAsFixed(1)}%',
-                      Colors.green,
                     ),
                   ],
                 ),

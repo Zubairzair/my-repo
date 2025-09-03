@@ -57,7 +57,7 @@ dependencies:
   share_plus: ^7.0.0                    # Share functionality
   pdf: ^3.10.7                          # PDF generation
   excel: ^2.0.6                         # Excel generation
-  screenshot: ^2.1.0                    # Screenshot functionality
+  screenshot: ^3.0.0                   # Screenshot functionality
   
 dev_dependencies:
   flutter_test:

@@ -581,14 +581,10 @@ class _StockReportsState extends State<StockReports> {
 
   void _showAddStockDialog() {
     final nameController = TextEditingController();
-    final skuController = TextEditingController();
+    final skuController = TextEditingController(); 
     final quantityController = TextEditingController();
     final minStockController = TextEditingController();
     final priceController = TextEditingController();
-
-    // Auto-generate SKU
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    skuController.text = 'SKU${timestamp.toString().substring(8)}';
 
     showModalBottomSheet(
       context: context,
@@ -601,67 +597,148 @@ class _StockReportsState extends State<StockReports> {
         content: Container(
           width: double.maxFinite,
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.6,
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
           ),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Item Name *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.inventory_2),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: skuController,
-                  decoration: const InputDecoration(
-                    labelText: 'SKU Code *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.qr_code),
-                    helperText: 'Unique product identifier',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: TextField(
-                        controller: quantityController,
-                        decoration: const InputDecoration(
-                          labelText: 'Quantity *',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.numbers),
-                        ),
-                        keyboardType: TextInputType.number,
+                    const Text(
+                      'Item Name *',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: minStockController,
-                        decoration: const InputDecoration(
-                          labelText: 'Min Stock *',
-                          border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.warning),
-                        ),
-                        keyboardType: TextInputType.number,
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter item name',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: priceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Price (Rs) *',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.attach_money),
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                const SizedBox(height: 20),
+                
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'SKU Code *',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Unique product identifier (leave empty to auto-generate)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: skuController,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter SKU or leave empty for auto-generation',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Quantity *',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: quantityController,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter quantity',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Minimum Quantity *',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Alert when stock falls below this level',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: minStockController,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter minimum stock level',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Price (Rs) *',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: priceController,
+                      decoration: const InputDecoration(
+                        hintText: 'Enter price in Rupees',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -674,66 +751,110 @@ class _StockReportsState extends State<StockReports> {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (nameController.text.isNotEmpty &&
-                  skuController.text.isNotEmpty &&
-                  quantityController.text.isNotEmpty &&
-                  minStockController.text.isNotEmpty &&
-                  priceController.text.isNotEmpty) {
-                
-                try {
-                  // Check if SKU already exists
-                  final existingSku = await FirebaseFirestore.instance
-                      .collection('stock_items')
-                      .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
-                      .where('sku', isEqualTo: skuController.text)
-                      .get();
-
-                  if (existingSku.docs.isNotEmpty) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('SKU already exists! Please use a unique SKU.'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                    return;
-                  }
-
-                  await FirebaseFirestore.instance.collection('stock_items').add({
-                    'userId': FirebaseAuth.instance.currentUser?.uid,
-                    'name': nameController.text,
-                    'sku': skuController.text,
-                    'quantity': int.parse(quantityController.text),
-                    'minStock': int.parse(minStockController.text),
-                    'price': double.parse(priceController.text),
-                    'lastUpdated': DateTime.now().toString().substring(0, 10),
-                    'createdAt': DateTime.now().toIso8601String(),
-                  });
-
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Stock item added successfully!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error adding item: ${e.toString()}'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              } else {
+              if (nameController.text.trim().isEmpty ||
+                  quantityController.text.trim().isEmpty ||
+                  minStockController.text.trim().isEmpty ||
+                  priceController.text.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Please fill all required fields'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              String finalSku = skuController.text.trim();
+              if (finalSku.isEmpty) {
+                final timestamp = DateTime.now().millisecondsSinceEpoch;
+                final randomSuffix = (timestamp % 10000).toString().padLeft(4, '0');
+                finalSku = 'SKU$randomSuffix';
+              }
+
+              try {
+                final existingSku = await FirebaseFirestore.instance
+                    .collection('stock_items')
+                    .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                    .where('sku', isEqualTo: finalSku)
+                    .get();
+
+                if (existingSku.docs.isNotEmpty) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      title: const Text('Duplicate SKU'),
+                      content: Text('SKU "$finalSku" already exists. Please change the SKU to continue.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                  return;
+                }
+
+                final quantity = int.tryParse(quantityController.text.trim());
+                final minStock = int.tryParse(minStockController.text.trim());
+                final price = double.tryParse(priceController.text.trim());
+
+                if (quantity == null || quantity < 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid quantity'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                if (minStock == null || minStock < 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid minimum quantity'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                if (price == null || price < 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter a valid price'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                await FirebaseFirestore.instance.collection('stock_items').add({
+                  'userId': FirebaseAuth.instance.currentUser?.uid,
+                  'name': nameController.text.trim(),
+                  'sku': finalSku,
+                  'quantity': quantity,
+                  'minStock': minStock,
+                  'price': price,
+                  'lastUpdated': DateTime.now().toString().substring(0, 10),
+                  'createdAt': DateTime.now().toIso8601String(),
+                });
+
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Stock item "${nameController.text.trim()}" added successfully!'),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 3),
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error adding item: ${e.toString()}'),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -800,24 +921,20 @@ class _StockReportsState extends State<StockReports> {
                   'lastUpdated': DateTime.now().toString().substring(0, 10),
                 });
 
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Stock updated successfully!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Stock updated successfully!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error updating stock: ${e.toString()}'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error updating stock: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(
@@ -853,24 +970,20 @@ class _StockReportsState extends State<StockReports> {
                     .doc(docId)
                     .delete();
 
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Stock item deleted successfully!'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Stock item deleted successfully!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
               } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error deleting item: ${e.toString()}'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error deleting item: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
             style: ElevatedButton.styleFrom(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vyapar_app/home/invoices/create_invoice.dart';
+import '../../services/invoice_export_service.dart';
 
 class Invoices extends StatefulWidget {
   const Invoices({super.key});
@@ -131,7 +132,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
             final pricing = data['pricing'] as Map<String, dynamic>?;
             if (pricing == null) return sum;
             
-            return sum + (pricing['total'] as double? ?? 0);
+            return sum + (pricing['finalTotal'] as double? ?? 0);
           } catch (e) {
             print('Error processing invoice: $e');
             return sum;
@@ -368,10 +369,14 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
       const status = 'Paid';
       const statusColor = Colors.green;
 
-      // Safe access to nested fields
+      // Safe access to nested fields - use shop data if available, otherwise customer
+      final shop = invoice['shop'] as Map<String, dynamic>?;
       final customer = invoice['customer'] as Map<String, dynamic>? ?? {};
       final pricing = invoice['pricing'] as Map<String, dynamic>? ?? {};
-      final total = pricing['total'] as double? ?? 0.0;
+      final total = pricing['finalTotal'] as double? ?? 0.0;
+
+      // Use shop name if available, otherwise customer name
+      final displayName = shop?['name'] ?? customer['name'] ?? 'Unknown Customer';
 
       return Container(
         margin: const EdgeInsets.only(bottom: 16),
@@ -412,7 +417,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            customer['name'] ?? 'Unknown Customer',
+                            displayName,
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -565,6 +570,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
     try {
       final items = List<Map<String, dynamic>>.from(invoice['items'] ?? []);
       final pricing = invoice['pricing'] as Map<String, dynamic>? ?? {};
+      final shop = invoice['shop'] as Map<String, dynamic>?;
       final customer = invoice['customer'] as Map<String, dynamic>? ?? {};
       
       return Column(
@@ -596,19 +602,30 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
             _buildDetailRow('Status', 'Paid'), // Always show as Paid
             _buildDetailRow('Created', invoice['createdAt'] != null ? DateTime.parse(invoice['createdAt']).toString().substring(0, 10) : 'Unknown'),
             _buildDetailRow('Due Date', invoice['dueDate'] != null ? DateTime.parse(invoice['dueDate']).toString().substring(0, 10) : 'Unknown'),
-            _buildDetailRow('Payment Terms', invoice['paymentTerms'] ?? 'Unknown'),
           ]),
           
           const SizedBox(height: 24),
           
-          // Customer Info
-          _buildDetailSection('Customer Information', [
-            _buildDetailRow('Name', customer['name'] ?? 'Unknown'),
-            if ((customer['email'] ?? '').isNotEmpty)
-              _buildDetailRow('Email', customer['email']),
-            if ((customer['phone'] ?? '').isNotEmpty)
-              _buildDetailRow('Phone', '+92 ${customer['phone']}'),
-          ]),
+          // Customer/Shop Info
+          if (shop != null) ...[
+            _buildDetailSection('Shop Information', [
+              _buildDetailRow('Name', shop['name'] ?? 'Unknown'),
+              if ((shop['address'] ?? '').isNotEmpty)
+                _buildDetailRow('Address', shop['address']),
+              if ((shop['phone'] ?? '').isNotEmpty)
+                _buildDetailRow('Phone', shop['phone']),
+              if ((shop['email'] ?? '').isNotEmpty)
+                _buildDetailRow('Email', shop['email']),
+            ]),
+          ] else ...[
+            _buildDetailSection('Customer Information', [
+              _buildDetailRow('Name', customer['name'] ?? 'Unknown'),
+              if ((customer['email'] ?? '').isNotEmpty)
+                _buildDetailRow('Email', customer['email']),
+              if ((customer['phone'] ?? '').isNotEmpty)
+                _buildDetailRow('Phone', customer['phone']),
+            ]),
+          ],
           
           const SizedBox(height: 24),
           
@@ -636,15 +653,13 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
               children: [
                 _buildDetailRow('Subtotal', 'Rs ${(pricing['subtotal'] as double? ?? 0).toStringAsFixed(2)}'),
                 if ((pricing['discount'] as double? ?? 0) > 0)
-                  _buildDetailRow('Item Discount', '- Rs ${(pricing['discount'] as double? ?? 0).toStringAsFixed(2)}'),
+                  _buildDetailRow('Discount', '- Rs ${(pricing['discount'] as double? ?? 0).toStringAsFixed(2)}'),
                 if (pricing['extraDiscount'] != null && (pricing['extraDiscount'] as double? ?? 0) > 0)
                   _buildDetailRow('Extra Discount', '- Rs ${(pricing['extraDiscount'] as double? ?? 0).toStringAsFixed(2)}'),
-                if ((pricing['taxAmount'] as double? ?? 0) > 0)
-                  _buildDetailRow('Tax (${pricing['taxRate'] ?? 0}%)', 'Rs ${(pricing['taxAmount'] as double? ?? 0).toStringAsFixed(2)}'),
                 const Divider(),
                 _buildDetailRow(
                   'Total Amount', 
-                  'Rs ${(pricing['total'] as double? ?? 0).toStringAsFixed(2)}',
+                  'Rs ${(pricing['finalTotal'] as double? ?? 0).toStringAsFixed(2)}',
                   isTotal: true,
                 ),
               ],
@@ -667,7 +682,8 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
                 child: OutlinedButton(
                   onPressed: () {
                     Navigator.pop(context);
-                    _deleteInvoice(invoice['id'] ?? '', customer['name'] ?? 'Unknown Customer');
+                    final displayName = shop?['name'] ?? customer['name'] ?? 'Unknown Customer';
+                    _deleteInvoice(invoice['id'] ?? '', displayName);
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.red,
@@ -681,10 +697,7 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);
-                    // TODO: Implement share functionality
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Share feature coming soon!')),
-                    );
+                    _shareInvoice(invoice);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueAccent,
@@ -853,32 +866,41 @@ class _InvoicesState extends State<Invoices> with AutomaticKeepAliveClientMixin 
     );
   }
 
-  Future<void> _updateInvoiceStatus(String invoiceId, String status) async {
-    if (invoiceId.isEmpty) return;
-    
+  Future<void> _shareInvoice(Map<String, dynamic> invoice) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('invoices')
-          .doc(invoiceId)
-          .update({'status': status});
+      // Prepare data for export service
+      final shop = invoice['shop'] as Map<String, dynamic>?;
+      final customer = invoice['customer'] as Map<String, dynamic>? ?? {};
+      final items = List<Map<String, dynamic>>.from(invoice['items'] ?? []);
+      final pricing = invoice['pricing'] as Map<String, dynamic>? ?? {};
       
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Invoice marked as $status'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      // Use shop data if available, otherwise customer data
+      final customerData = shop ?? customer;
+      
+      // Show export dialog with proper data structure
+      await InvoiceExportService.showExportDialog(
+        context,
+        {
+          'invoiceNumber': invoice['id'],
+          'date': invoice['createdAt'] != null ? DateTime.parse(invoice['createdAt']).toString().substring(0, 10) : DateTime.now().toString().substring(0, 10),
+        },
+        customerData,
+        items,
+        {
+          'subtotal': pricing['subtotal'] ?? 0.0,
+          'discount': pricing['discount'] ?? 0.0,
+          'extraDiscount': pricing['extraDiscount'] ?? 0.0,
+          'taxAmount': 0.0, // No tax in current system
+          'total': pricing['finalTotal'] ?? 0.0,
+        },
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error updating invoice status'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error sharing invoice: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }

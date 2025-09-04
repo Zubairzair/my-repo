@@ -569,171 +569,18 @@ class InvoiceExportService {
         );
       }
 
-      print('Creating invoice widget for screenshot...');
-      final invoiceWidget = MaterialApp(
-        home: Scaffold(
-          backgroundColor: Colors.white,
-          body: Container(
-            width: 800,
-            padding: const EdgeInsets.all(32),
-            color: Colors.white,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Center(child: Text('Al Badar Traders', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blue.shade800))),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Shop: ${customerData['name'] ?? 'N/A'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text('Address: ${customerData['address'] ?? 'N/A'}', style: const TextStyle(fontSize: 14)),
-                        if (customerData['phone'] != null) Text('Phone: ${customerData['phone']}', style: const TextStyle(fontSize: 14)),
-                        if (customerData['email'] != null) Text('Email: ${customerData['email']}', style: const TextStyle(fontSize: 14)),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('Date: ${invoiceData['date'] ?? DateTime.now().toString().substring(0, 10)}', style: const TextStyle(fontSize: 14)),
-                        Text('Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                Container(
-                  decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(8)),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: const BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
-                        ),
-                        child: const Row(
-                          children: [
-                            Expanded(flex: 2, child: Text('Barcode', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                            Expanded(flex: 1, child: Text('S#', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                            Expanded(flex: 2, child: Text('SKU', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                            Expanded(flex: 1, child: Text('Qty', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                            Expanded(flex: 1, child: Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                            Expanded(flex: 2, child: Text('TP', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                            Expanded(flex: 2, child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                          ],
-                        ),
-                      ),
-                      ...items.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final item = entry.value;
-                        final tp = (item['tp'] ?? 0.0) as double;
-                        final quantity = (item['quantity'] ?? 1) as int;
-                        final total = tp * quantity;
-                        
-                        return Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.grey.shade300))),
-                          child: Row(
-                            children: [
-                              Expanded(flex: 2, child: Text(item['barcode']?.toString() ?? 'N/A', style: const TextStyle(fontSize: 11))),
-                              Expanded(flex: 1, child: Text('${index + 1}', style: const TextStyle(fontSize: 11))),
-                              Expanded(flex: 2, child: Text(item['sku']?.toString() ?? '', style: const TextStyle(fontSize: 11))),
-                              Expanded(flex: 1, child: Text('$quantity', style: const TextStyle(fontSize: 11))),
-                              Expanded(flex: 1, child: Text(item['unit']?.toString() ?? 'Pcs', style: const TextStyle(fontSize: 11))),
-                              Expanded(flex: 2, child: Text('Rs ${tp.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
-                              Expanded(flex: 2, child: Text('Rs ${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Container(
-                    width: 250,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Subtotal:', style: TextStyle(color: Colors.black)),
-                            Text('Rs ${((pricing['subtotal'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black)),
-                          ],
-                        ),
-                        if ((pricing['discount'] ?? 0.0) > 0) ...[
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Discount:', style: TextStyle(color: Colors.black)),
-                              Text('-Rs ${((pricing['discount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.red)),
-                            ],
-                          ),
-                        ],
-                        if ((pricing['extraDiscount'] ?? 0.0) > 0) ...[
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Extra Discount:', style: TextStyle(color: Colors.black)),
-                              Text('-Rs ${((pricing['extraDiscount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.purple)),
-                            ],
-                          ),
-                        ],
-                        const Divider(color: Colors.grey),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Final Total:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
-                            Text('Rs ${((pricing['total'] ?? 0.0) as double).toStringAsFixed(2)}', 
-                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-
-      print('Capturing screenshot...');
-      ScreenshotController screenshotController = ScreenshotController();
-      final imageBytes = await screenshotController.captureFromWidget(
-        invoiceWidget,
-        pixelRatio: 2.0,
-        context: context,
-      );
+      // Generate image in background to prevent context unmounting
+      final imageData = await _generateImageInBackground(context, invoiceData, customerData, items, pricing);
       
-      print('Screenshot captured: ${imageBytes.length} bytes');
+      print('Image bytes generated: ${imageData.length} bytes');
       
-      if (!context.mounted) {
-        print('Context no longer mounted, aborting Image export');
-        return;
-      }
-
       print('Getting temporary directory...');
       final output = await getTemporaryDirectory();
       final fileName = 'invoice_${invoiceData['invoiceNumber'] ?? DateTime.now().millisecondsSinceEpoch}.png';
       final file = File('${output.path}/$fileName');
       
       print('Writing Image file to: ${file.path}');
-      await file.writeAsBytes(imageBytes);
+      await file.writeAsBytes(imageData);
       
       // Validate file was created successfully
       final fileExists = await file.exists();
@@ -772,6 +619,174 @@ class InvoiceExportService {
         );
       }
     }
+  }
+
+  // Generate Image with proper context handling
+  static Future<List<int>> _generateImageInBackground(
+    BuildContext context,
+    Map<String, dynamic> invoiceData,
+    Map<String, dynamic> customerData,
+    List<Map<String, dynamic>> items,
+    Map<String, dynamic> pricing,
+  ) async {
+    print('Creating invoice widget for screenshot...');
+    
+    final invoiceWidget = MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.white,
+        body: Container(
+          width: 800,
+          padding: const EdgeInsets.all(32),
+          color: Colors.white,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(child: Text('Al Badar Traders', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blue.shade800))),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Shop: ${customerData['name'] ?? 'N/A'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text('Address: ${customerData['address'] ?? 'N/A'}', style: const TextStyle(fontSize: 14)),
+                      if (customerData['phone'] != null) Text('Phone: ${customerData['phone']}', style: const TextStyle(fontSize: 14)),
+                      if (customerData['email'] != null) Text('Email: ${customerData['email']}', style: const TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('Date: ${invoiceData['date'] ?? DateTime.now().toString().substring(0, 10)}', style: const TextStyle(fontSize: 14)),
+                      Text('Invoice #: ${invoiceData['invoiceNumber'] ?? 'N/A'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              Container(
+                decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(8)),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: const BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Expanded(flex: 2, child: Text('Barcode', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                          Expanded(flex: 1, child: Text('S#', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                          Expanded(flex: 2, child: Text('SKU', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                          Expanded(flex: 1, child: Text('Qty', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                          Expanded(flex: 1, child: Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                          Expanded(flex: 2, child: Text('TP', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                          Expanded(flex: 2, child: Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                        ],
+                      ),
+                    ),
+                    ...items.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final item = entry.value;
+                      final tp = (item['tp'] ?? 0.0) as double;
+                      final quantity = (item['quantity'] ?? 1) as int;
+                      final total = tp * quantity;
+                      
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.grey.shade300))),
+                        child: Row(
+                          children: [
+                            Expanded(flex: 2, child: Text(item['barcode']?.toString() ?? 'N/A', style: const TextStyle(fontSize: 11))),
+                            Expanded(flex: 1, child: Text('${index + 1}', style: const TextStyle(fontSize: 11))),
+                            Expanded(flex: 2, child: Text(item['sku']?.toString() ?? '', style: const TextStyle(fontSize: 11))),
+                            Expanded(flex: 1, child: Text('$quantity', style: const TextStyle(fontSize: 11))),
+                            Expanded(flex: 1, child: Text(item['unit']?.toString() ?? 'Pcs', style: const TextStyle(fontSize: 11))),
+                            Expanded(flex: 2, child: Text('Rs ${tp.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
+                            Expanded(flex: 2, child: Text('Rs ${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Container(
+                  width: 250,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Subtotal:', style: TextStyle(color: Colors.black)),
+                          Text('Rs ${((pricing['subtotal'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.black)),
+                        ],
+                      ),
+                      if ((pricing['discount'] ?? 0.0) > 0) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Discount:', style: TextStyle(color: Colors.black)),
+                            Text('-Rs ${((pricing['discount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ],
+                      if ((pricing['extraDiscount'] ?? 0.0) > 0) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Extra Discount:', style: TextStyle(color: Colors.black)),
+                            Text('-Rs ${((pricing['extraDiscount'] ?? 0.0) as double).toStringAsFixed(2)}', style: const TextStyle(color: Colors.purple)),
+                          ],
+                        ),
+                      ],
+                      const Divider(color: Colors.grey),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Final Total:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
+                          Text('Rs ${((pricing['total'] ?? 0.0) as double).toStringAsFixed(2)}', 
+                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    print('Capturing screenshot...');
+    ScreenshotController screenshotController = ScreenshotController();
+    
+    // Use a small delay to ensure widget is fully rendered
+    await Future.delayed(const Duration(milliseconds: 100));
+    
+    final imageBytes = await screenshotController.captureFromWidget(
+      invoiceWidget,
+      pixelRatio: 2.0,
+      context: context,
+    );
+    
+    print('Screenshot captured: ${imageBytes.length} bytes');
+    return imageBytes;
   }
 
   static Widget _buildInvoiceWidget(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/payment_service.dart';
 
 class Profits extends StatefulWidget {
   const Profits({super.key});
@@ -46,6 +47,7 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
           slivers: [
             SliverToBoxAdapter(child: _buildHeader()),
             SliverToBoxAdapter(child: _buildStatsCards()),
+            SliverToBoxAdapter(child: _buildCreditDebitReport()),
             SliverFillRemaining(child: _buildProfitsList()),
           ],
         ),
@@ -155,6 +157,173 @@ class _ProfitsState extends State<Profits> with AutomaticKeepAliveClientMixin {
                   ),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreditDebitReport() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            spreadRadius: 0,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Credit/Debit Summary',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          FutureBuilder<Map<String, double>>(
+            future: PaymentService.getTotalCreditDebit(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              if (snapshot.hasError) {
+                return Text('Error: ${snapshot.error}');
+              }
+              
+              final data = snapshot.data ?? {};
+              final totalCredit = data['totalCredit'] ?? 0.0;
+              final totalDebit = data['totalDebit'] ?? 0.0;
+              final netBalance = data['netBalance'] ?? 0.0;
+              
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildCreditDebitCard(
+                          'Total Credit',
+                          'Rs ${totalCredit.toStringAsFixed(2)}',
+                          'Money we owe',
+                          Colors.red,
+                          Icons.arrow_upward,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildCreditDebitCard(
+                          'Total Debit',
+                          'Rs ${totalDebit.toStringAsFixed(2)}',
+                          'Money owed to us',
+                          Colors.green,
+                          Icons.arrow_downward,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: netBalance >= 0 ? Colors.red.shade50 : Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: netBalance >= 0 ? Colors.red.shade200 : Colors.green.shade200,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Net Balance',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          netBalance >= 0 
+                              ? 'We owe: Rs ${netBalance.abs().toStringAsFixed(2)}'
+                              : 'They owe us: Rs ${netBalance.abs().toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: netBalance >= 0 ? Colors.red : Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreditDebitCard(String title, String amount, String subtitle, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(icon, color: color, size: 16),
+              ),
+              const Spacer(),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            amount,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.grey,
             ),
           ),
         ],

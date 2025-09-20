@@ -65,7 +65,7 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Manage returned items and stock adjustments',
+            'Manage returned items and customer returns',
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[600],
@@ -375,7 +375,7 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    isCustomerReturn ? 'CUSTOMER RETURN' : 'STOCK ADJUSTMENT',
+                    'CUSTOMER RETURN',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -565,10 +565,6 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
                           value: 'customerReturn',
                           child: Text('Customer Return'),
                         ),
-                        DropdownMenuItem(
-                          value: 'stockAdjustment',
-                          child: Text('Stock Adjustment'),
-                        ),
                       ],
                       onChanged: (value) {
                         setDialogState(() {
@@ -579,48 +575,7 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
                     
                     const SizedBox(height: 16),
                     
-                    // Stock Item Selection
-                    FutureBuilder<List<Map<String, dynamic>>>(
-                      future: _loadStockItemsForReturn(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) {
-                          stockItems = snapshot.data!;
-                        }
-                        
-                        return DropdownButtonFormField<String>(
-                          decoration: const InputDecoration(
-                            labelText: 'Select Item from Stock',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.inventory_2),
-                          ),
-                          items: [
-                            const DropdownMenuItem<String>(
-                              value: null,
-                              child: Text('Select from stock...'),
-                            ),
-                            ...stockItems.map((item) {
-                              return DropdownMenuItem<String>(
-                                value: item['sku'],
-                                child: Text('${item['name']} (${item['sku']})'),
-                              );
-                            }).toList(),
-                          ],
-                          onChanged: (value) {
-                            if (value != null) {
-                              final selectedItem = stockItems.firstWhere((item) => item['sku'] == value);
-                              setDialogState(() {
-                                productNameController.text = selectedItem['name'];
-                                productSkuController.text = selectedItem['sku'];
-                                unitPriceController.text = selectedItem['price'].toString();
-                              });
-                            }
-                          },
-                        );
-                      },
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
+                    // Product Name - Manual Entry
                     TextField(
                       controller: productNameController,
                       decoration: const InputDecoration(
@@ -711,26 +666,6 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
     );
   }
 
-  Future<List<Map<String, dynamic>>> _loadStockItemsForReturn() async {
-    try {
-      final userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId == null) return [];
-
-      final stockSnapshot = await FirebaseFirestore.instance
-          .collection('stock_items')
-          .where('userId', isEqualTo: userId)
-          .get();
-
-      return stockSnapshot.docs.map((doc) {
-        final data = doc.data();
-        data['docId'] = doc.id;
-        return data;
-      }).toList();
-    } catch (e) {
-      print('Error loading stock items: $e');
-      return [];
-    }
-  }
 
   Future<void> _processReturn(
     BuildContext dialogContext,
@@ -777,33 +712,13 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
         'createdAt': DateTime.now().toIso8601String(),
       });
 
-      // Restore stock if SKU exists in inventory
-      final stockQuery = await FirebaseFirestore.instance
-          .collection('stock_items')
-          .where('userId', isEqualTo: user.uid)
-          .where('sku', isEqualTo: productSku)
-          .get();
-
-      if (stockQuery.docs.isNotEmpty) {
-        final stockDoc = stockQuery.docs.first;
-        final stockData = stockDoc.data();
-        final currentStock = stockData['quantity'] as int;
-        final newStock = currentStock + returnQuantity;
-
-        await FirebaseFirestore.instance
-            .collection('stock_items')
-            .doc(stockDoc.id)
-            .update({
-          'quantity': newStock,
-          'lastUpdated': DateTime.now().toString().substring(0, 10),
-        });
-      }
+      // Note: Stock management has been removed from the system
 
       if (mounted) {
         Navigator.pop(dialogContext);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Return processed successfully! Stock updated.'),
+            content: Text('Return processed successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -828,7 +743,7 @@ class _ReturnsManagementState extends State<ReturnsManagement> {
           borderRadius: BorderRadius.circular(16),
         ),
         title: const Text('Delete Return'),
-        content: Text('Are you sure you want to delete the return for "$productName"? This action cannot be undone and will not affect stock levels.'),
+        content: Text('Are you sure you want to delete the return for "$productName"? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "903765575810",
-    "project_id": "salles-176c9",
-    "storage_bucket": "salles-176c9.firebasestorage.app"
+    "project_number": "391314548884",
+    "project_id": "ourvyapar-bd4ca",
+    "storage_bucket": "ourvyapar-bd4ca.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:903765575810:android:ddfb259f8de501720fcc9b",
+        "mobilesdk_app_id": "1:391314548884:android:fc26db2682ed9b81be2c81",
         "android_client_info": {
           "package_name": "com.example.vyapar_app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCYe0oYHPTk62awkc4PlW2bOScSiRyMwzo"
+          "current_key": "AIzaSyB3MjiEJSmV090bZ9_sxgO_GpFU2tvLRWU"
         }
       ],
       "services": {

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/invoice_export_service.dart';
+import '../../services/payment_service.dart';
 
 class CreateInvoice extends StatefulWidget {
   const CreateInvoice({super.key});
@@ -21,6 +22,10 @@ class _CreateInvoiceState extends State<CreateInvoice>
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _discountController;
   late final TextEditingController _extraDiscountController;
+  late final TextEditingController _paymentAmountController;
+  
+  bool _addPaymentRecord = false;
+  String _paymentType = 'credit';
 
   List<Map<String, dynamic>> items = [];
 
@@ -52,8 +57,6 @@ class _CreateInvoiceState extends State<CreateInvoice>
       'quantity': 1,
       'unit': 'Pcs',
       'tp': 0.0,
-      'stockItemId': null,
-      'availableStock': 0,
     };
   }
 
@@ -62,6 +65,7 @@ class _CreateInvoiceState extends State<CreateInvoice>
     super.initState();
     _discountController = TextEditingController(text: '0');
     _extraDiscountController = TextEditingController(text: '0');
+    _paymentAmountController = TextEditingController();
     items = [_createEmptyItem()]; // Initialize with one empty item
     _loadShops();
   }
@@ -71,6 +75,7 @@ class _CreateInvoiceState extends State<CreateInvoice>
     _isDisposed = true;
     _discountController.dispose();
     _extraDiscountController.dispose();
+    _paymentAmountController.dispose();
     super.dispose();
   }
 
@@ -112,6 +117,8 @@ class _CreateInvoiceState extends State<CreateInvoice>
                   _buildItemsSection(),
                   const SizedBox(height: 24),
                   _buildDiscountSection(),
+                  const SizedBox(height: 24),
+                  _buildPaymentSection(),
                   const SizedBox(height: 24),
                   _buildSummaryCard(),
                   const SizedBox(height: 100), // Space for bottom button
@@ -355,91 +362,27 @@ class _CreateInvoiceState extends State<CreateInvoice>
 
           const SizedBox(height: 16),
 
-          // Item Name Dropdown from Stock
-          FutureBuilder<List<Map<String, dynamic>>>(
-            future: _loadStockItems(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const CircularProgressIndicator();
+          // Item Name - Manual Entry
+          TextFormField(
+            initialValue: items[index]['name']?.toString() ?? '',
+            decoration: InputDecoration(
+              labelText: 'Item Name *',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              helperText: 'Enter the item name manually',
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter item name';
               }
-              
-              final stockItems = snapshot.data ?? [];
-              
-              if (snapshot.hasError) {
-                return Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade50,
-                    border: Border.all(color: Colors.red.shade200),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text('Error loading stock: ${snapshot.error}'),
-                );
-              }
-              
-              if (stockItems.isEmpty) {
-                return Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.shade50,
-                    border: Border.all(color: Colors.orange.shade200),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text('No stock items available. Add items to stock first.'),
-                );
-              }
-              
-              return DropdownButtonFormField<String>(
-                value: items[index]['stockItemId'],
-                decoration: InputDecoration(
-                  labelText: 'Select Item from Stock *',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-                isExpanded: true,
-                items: [
-                  const DropdownMenuItem<String>(
-                    value: null,
-                    child: Text('Select item from stock...'),
-                  ),
-                  ...stockItems.map((item) {
-                    return DropdownMenuItem<String>(
-                      value: item['docId'],
-                      child: Text(
-                        '${item['name']} (${item['sku']}) - Stock: ${item['quantity']}',
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    );
-                  }).toList(),
-                ],
-                validator: (value) {
-                  if (value == null) {
-                    return 'Please select an item';
-                  }
-                  return null;
-                },
-                onChanged: (value) {
-                  if (value != null) {
-                    final selectedItem = stockItems.firstWhere(
-                      (item) => item['docId'] == value,
-                      orElse: () => {},
-                    );
-                    
-                    if (selectedItem.isNotEmpty) {
-                      _safeSetState(() {
-                        items[index]['stockItemId'] = value;
-                        items[index]['name'] = selectedItem['name'];
-                        items[index]['sku'] = selectedItem['sku'];
-                        items[index]['tp'] = selectedItem['price'] ?? 0.0;
-                        items[index]['unit'] = 'Pcs'; // Default unit
-                        items[index]['availableStock'] = selectedItem['quantity'];
-                      });
-                    }
-                  }
-                },
-              );
+              return null;
+            },
+            onChanged: (value) {
+              _safeSetState(() {
+                items[index]['name'] = value.trim();
+              });
             },
           ),
 
@@ -463,10 +406,6 @@ class _CreateInvoiceState extends State<CreateInvoice>
                     final qty = int.tryParse(value ?? '');
                     if (qty == null || qty <= 0) {
                       return 'Enter valid quantity';
-                    }
-                    final availableStock = items[index]['availableStock'] as int? ?? 0;
-                    if (qty > availableStock && availableStock > 0) {
-                      return 'Only $availableStock available';
                     }
                     return null;
                   },
@@ -649,6 +588,112 @@ class _CreateInvoiceState extends State<CreateInvoice>
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            spreadRadius: 0,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Payment Record (Optional)',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Add Payment Record Checkbox
+          CheckboxListTile(
+            title: const Text('Add payment record for this invoice'),
+            subtitle: const Text('Record payment transaction with this invoice'),
+            value: _addPaymentRecord,
+            onChanged: (value) {
+              _safeSetState(() {
+                _addPaymentRecord = value ?? false;
+                if (!_addPaymentRecord) {
+                  _paymentAmountController.clear();
+                }
+              });
+            },
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
+          
+          if (_addPaymentRecord) ...[
+            const SizedBox(height: 16),
+            
+            // Payment Type
+            DropdownButtonFormField<String>(
+              value: _paymentType,
+              decoration: InputDecoration(
+                labelText: 'Payment Type *',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: 'credit',
+                  child: Text('Credit (Money we owe them)'),
+                ),
+                DropdownMenuItem(
+                  value: 'debit',
+                  child: Text('Debit (Money they owe us)'),
+                ),
+              ],
+              onChanged: (value) {
+                _safeSetState(() {
+                  _paymentType = value!;
+                });
+              },
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Payment Amount
+            TextFormField(
+              controller: _paymentAmountController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Payment Amount *',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                prefixText: 'Rs ',
+                helperText: 'Amount for this payment transaction',
+              ),
+              validator: _addPaymentRecord ? (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter payment amount';
+                }
+                final amount = double.tryParse(value);
+                if (amount == null || amount <= 0) {
+                  return 'Please enter valid amount';
+                }
+                return null;
+              } : null,
+            ),
+          ],
         ],
       ),
     );
@@ -889,12 +934,27 @@ class _CreateInvoiceState extends State<CreateInvoice>
       };
 
       // Save invoice
-      await FirebaseFirestore.instance
+      final invoiceDoc = await FirebaseFirestore.instance
           .collection('invoices')
           .add(invoiceData);
 
       // Update invoice counter
       await counterDoc.set({'count': nextNumber});
+
+      // Add payment record if requested
+      if (_addPaymentRecord && _paymentAmountController.text.isNotEmpty) {
+        final paymentAmount = double.tryParse(_paymentAmountController.text);
+        if (paymentAmount != null && paymentAmount > 0) {
+          await PaymentService.addPayment(
+            shopId: _selectedShop!['docId'],
+            shopName: _selectedShop!['name'],
+            amount: paymentAmount,
+            type: _paymentType,
+            description: 'Invoice #$nextNumber payment',
+            invoiceId: invoiceDoc.id,
+          );
+        }
+      }
 
       if (!_isDisposed && mounted) {
         _safeSetState(() {
@@ -1182,37 +1242,6 @@ class _CreateInvoiceState extends State<CreateInvoice>
     );
   }
 
-  Future<List<Map<String, dynamic>>> _loadStockItems() async {
-    try {
-      final userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId == null) {
-        print('User not authenticated');
-        return [];
-      }
-
-      print('Loading stock items for user: $userId');
-      
-      final stockSnapshot = await FirebaseFirestore.instance
-          .collection('stock_items')
-          .where('userId', isEqualTo: userId)
-          .get(); // Remove quantity filter to see all items first
-
-      print('Found ${stockSnapshot.docs.length} stock items');
-      
-      final stockItems = stockSnapshot.docs.map((doc) {
-        final data = doc.data();
-        data['docId'] = doc.id;
-        print('Stock item: ${data['name']} - Quantity: ${data['quantity']}');
-        return data;
-      }).where((item) => (item['quantity'] as int? ?? 0) > 0).toList(); // Filter in code for debugging
-      
-      print('Filtered to ${stockItems.length} items with stock > 0');
-      return stockItems;
-    } catch (e) {
-      print('Error loading stock items: $e');
-      return [];
-    }
-  }
 
   void _resetForm() {
     _safeSetState(() {
@@ -1221,6 +1250,9 @@ class _CreateInvoiceState extends State<CreateInvoice>
       items = [_createEmptyItem()];
       _discountController.text = '0';
       _extraDiscountController.text = '0';
+      _paymentAmountController.clear();
+      _addPaymentRecord = false;
+      _paymentType = 'credit';
     });
     
     // Clear form validation

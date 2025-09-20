@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:vyapar_app/home/invoices/invoices.dart';
-import 'package:vyapar_app/home/stock/stock_reports.dart';
 import 'package:vyapar_app/home/dashboard/dashboard.dart';
 import 'package:vyapar_app/home/profits/profits.dart';
+import 'package:vyapar_app/home/payments/payment_management.dart';
 import 'package:vyapar_app/config/session_manager.dart';
 
 import 'account.dart';
@@ -24,7 +24,7 @@ class _HomeScreenState extends State<HomeScreen>
   // Create unique global keys for each tab to prevent conflicts
   final GlobalKey _dashboardKey = GlobalKey();
   final GlobalKey _invoicesKey = GlobalKey();
-  final GlobalKey _stockKey = GlobalKey();
+  final GlobalKey _paymentsKey = GlobalKey();
   final GlobalKey _profitsKey = GlobalKey();
   final GlobalKey _accountKey = GlobalKey();
 
@@ -138,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen>
       case 1:
         return Invoices(key: _invoicesKey);
       case 2:
-        return StockReports(key: _stockKey);
+        return PaymentManagement(key: _paymentsKey);
       case 3:
         return Profits(key: _profitsKey);
       case 4:
@@ -239,8 +239,8 @@ class _HomeScreenState extends State<HomeScreen>
               label: 'Invoices',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.inventory),
-              label: 'Stock',
+              icon: Icon(Icons.payment),
+              label: 'Payments',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.trending_up),
